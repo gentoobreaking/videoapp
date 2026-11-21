@@ -73,7 +73,7 @@ type nativeInput struct {
 	StartMS         int64                   `json:"startMs"`
 	DurationMS      int64                   `json:"durationMs"`
 	Board           string                  `json:"board"`
-	Entries         []nativeDownloadEpisode `json:"entries"`
+	Entries         []NativeDownloadEpisode `json:"entries"`
 	JobID           string                  `json:"jobId"`
 	Command         string                  `json:"command"`
 	Action          string                  `json:"action"`
@@ -674,4 +674,115 @@ func (engine *nativeEngine) nativeResolve(ctx context.Context, input nativeInput
 		}
 	}
 	return engine.nativeOpenPlayback(ctx, choice)
+}
+
+func NewNativeEngine(directory, cache, downloads string) (*nativeEngine, error) {
+	return newNativeEngine(directory, cache, downloads)
+}
+
+
+// Downloader 返回引擎的下載器實例
+func (engine *nativeEngine) Downloader() *Downloader {
+	return engine.downloader
+}
+
+
+// Provider 返回指定站源的 Provider 實例
+func (d *Downloader) Provider(source string) (Provider, bool) {
+	return d.provider(source)
+}
+
+
+// EnqueueDownload 將下載任務加入佇列
+
+// NativeInput 供外部呼叫加入下載佇列
+type NativeInput struct {
+	SystemProxy     nativeSystemProxy       `json:"systemProxy"`
+	Settings        nativeResourceSettings  `json:"settings"`
+	JobIDs          []string                `json:"jobIds"`
+	PlaybackSession string                  `json:"playbackSession"`
+	StartMS         int64                   `json:"startMs"`
+	DurationMS      int64                   `json:"durationMs"`
+	Board           string                  `json:"board"`
+	Entries         []NativeDownloadEpisode `json:"entries"`
+	JobID           string                  `json:"jobId"`
+	Command         string                  `json:"command"`
+	Action          string                  `json:"action"`
+	Directory       string                  `json:"directory"`
+	Cache           string                  `json:"cache"`
+	Downloads       string                  `json:"downloads"`
+	Source          string                  `json:"source"`
+	Page            int                     `json:"page"`
+	Query           string                  `json:"query"`
+	Category        string                  `json:"category"`
+	Drama           LibraryDrama            `json:"drama"`
+	Chapter         Chapter                 `json:"chapter"`
+	Index           int                     `json:"index"`
+	Quality         int                     `json:"quality"`
+	Session         string                  `json:"session"`
+	Sequence        int64                   `json:"sequence"`
+	Force           bool                    `json:"force"`
+	Bundled         bool                    `json:"bundled"`
+	Version         string                  `json:"version"`
+	Since           string                  `json:"since"`
+	Account         json.RawMessage         `json:"account"`
+	Device          string                  `json:"device"`
+	File            string                  `json:"file"`
+	URL             string                  `json:"url"`
+	Token           string                  `json:"token"`
+}
+
+// EnqueueDownload 將下載任務加入佇列
+func (engine *nativeEngine) EnqueueDownload(ctx context.Context, input NativeInput) (int, error) {
+	internal := nativeInput{
+		SystemProxy:     input.SystemProxy,
+		Settings:        input.Settings,
+		JobIDs:          input.JobIDs,
+		PlaybackSession: input.PlaybackSession,
+		StartMS:         input.StartMS,
+		DurationMS:      input.DurationMS,
+		Board:           input.Board,
+		Entries:         input.Entries,
+		JobID:           input.JobID,
+		Command:         input.Command,
+		Action:          input.Action,
+		Directory:       input.Directory,
+		Cache:           input.Cache,
+		Downloads:       input.Downloads,
+		Source:          input.Source,
+		Page:            input.Page,
+		Query:           input.Query,
+		Category:        input.Category,
+		Drama:           input.Drama,
+		Chapter:         input.Chapter,
+		Index:           input.Index,
+		Quality:         input.Quality,
+		Session:         input.Session,
+		Sequence:        input.Sequence,
+		Force:           input.Force,
+		Bundled:         input.Bundled,
+		Version:         input.Version,
+		Since:           input.Since,
+		Account:         input.Account,
+		Device:          input.Device,
+		File:            input.File,
+		URL:             input.URL,
+		Token:           input.Token,
+	}
+	return engine.downloads.enqueueContext(ctx, internal)
+}
+
+// DownloadSnapshot 返回當前所有下載任務狀態
+func (engine *nativeEngine) DownloadSnapshot() ([]NativeDownloadJob, error) {
+	return engine.downloads.snapshot()
+}
+
+// DownloadSnapshotSince 返回自指定時間以來的下載變化
+func (engine *nativeEngine) DownloadSnapshotSince(since string) (map[string]any, error) {
+	return engine.downloads.snapshotSince(since)
+}
+
+// ControlDownload 控制下載任務 (pause, resume, remove 等)
+func (engine *nativeEngine) ControlDownload(id, action string) error {
+	return engine.downloads.control(id, action)
 }

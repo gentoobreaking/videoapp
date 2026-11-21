@@ -17,11 +17,15 @@ import (
 
 var errNativeLocalFile = errors.New("本地文件缺失或不完整，请重新下载或选择在线播放")
 
+// NativeDownloadEpisode 是導出的下載分集類型
+type NativeDownloadEpisode = nativeDownloadEpisode
 type nativeDownloadEpisode struct {
 	Chapter Chapter `json:"chapter"`
 	Index   int     `json:"index"`
 }
 
+// NativeDownloadJob 是導出的下載任務類型
+type NativeDownloadJob = nativeDownloadJob
 type nativeDownloadJob struct {
 	ID            string       `json:"id"`
 	Drama         LibraryDrama `json:"drama"`
