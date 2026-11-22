@@ -41,6 +41,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 以上四項皆通過後，CI 的 Checks 工作大機率能通過。剩下的失敗通常是 GitHub Actions Runner 環境差異或 gosec 安全掃描問題，需看 GitHub Actions 的具體錯誤訊息再處理。
 
 - Push 前需明確地回報執行過本地驗證結果，不可直接 push 而不回報驗證狀態。
+- **Push 到遠端前，務必先與使用者確認，取得同意後才能 push。** 不可自行決定 push，避免重複觸發 GitHub Actions CI workflow。
+- 推送到遠端前的完整操作順序（每一項都必須執行，不可跳過）：
+  1. 執行 `dart format --output=none --set-exit-if-changed lib test`，確認格式正確。
+  2. 執行 `dart analyze --fatal-infos lib test`，確認無錯誤。
+  3. 執行 `flutter test --dart-define=DISABLE_REMOTE_IMAGES=true` 和 `flutter test --dart-define=DISABLE_REMOTE_IMAGES=true --dart-define=ONLY_HONGGUO=true`，確認所有測試通過。
+  4. 回報以上驗證結果給使用者。
+  5. 等待使用者明確同意（例如：「可以 push」或「好的，push 吧」）。
+  6. 僅在取得使用者同意後，才執行 `git push origin main`。
 
 ## 站源
 
