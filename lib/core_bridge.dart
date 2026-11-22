@@ -571,16 +571,18 @@ class NativeRepository extends AppRepository {
 
   @override
   Future<AppUpdate?> checkUpdate(String version) async {
+    final token = String.fromEnvironment('GITHUB_TOKEN');
     final uri = Uri.parse(
       'https://api.github.com/repos/gentoobreaking/videoapp/releases/latest',
     );
-    final response = await http.get(
-      uri,
-      headers: {
-        'Accept': 'application/vnd.github+json',
-        'User-Agent': 'videoapp',
-      },
-    );
+    final headers = <String, String>{
+      'Accept': 'application/vnd.github+json',
+      'User-Agent': 'videoapp',
+    };
+    if (token.isNotEmpty) {
+      headers['Authorization'] = 'token $token';
+    }
+    final response = await http.get(uri, headers: headers);
     if (response.statusCode != 200) return null;
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final tagName = (data['tag_name'] as String?)?.replaceFirst(
