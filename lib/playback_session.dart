@@ -652,14 +652,28 @@ class PlaybackSession extends ChangeNotifier {
       _ => null,
     };
     if (hwdec != null) await platform.setProperty('hwdec', hwdec);
+
+    // 網路快取與逾時：提升串流穩定性，降低啟動與跳段緩衝。
+    await platform.setProperty('cache', '102400');
+    await platform.setProperty('network-timeout', '30');
+
     if (Platform.isAndroid) {
       await platform.setProperty('hwdec-codecs', 'all');
       await platform.setProperty('vd-lavc-skiploopfilter', 'nonkey');
-      await platform.setProperty('vd-lavc-threads', '4');
+      await platform.setProperty('vd-lavc-threads', '0'); // 0 = 自動，多核機器更快
       await platform.setProperty('vd-lavc-fast', 'yes');
       await platform.setProperty('video-sync', 'audio');
       await platform.setProperty('framedrop', 'vo');
     }
+
+    // 畫質與色彩：色彩空間自動、HDR 色調映射、高品質縮放濾鏡、隔行處理。
+    await platform.setProperty('colormatrix', 'auto');
+    await platform.setProperty('tonemapping', 'generic');
+    await platform.setProperty('scale', 'spline36');
+    await platform.setProperty('cscale', 'spline36');
+    await platform.setProperty('dscale', 'mitchell');
+    await platform.setProperty('deinterlace', 'yes');
+
     await platform.setProperty(
       'demuxer-lavf-o',
       [
