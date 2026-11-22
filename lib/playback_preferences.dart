@@ -108,7 +108,7 @@ class PlaybackPreferences {
     this.portraitStyleForWide = false,
     this.autoPictureInPicture = false,
     this.videoFit = VideoFit.auto,
-    this.bufferSize = null,
+    this.bufferSize,
     this.cacheSize,
     this.networkTimeout = 15,
     this.decoderThreads = 0,
