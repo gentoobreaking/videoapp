@@ -2,6 +2,16 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.4+135
+
+### 更新内容
+
+- 修復 Android CI 編譯失敗：FileProvider 缺失導入
+- 修復版本比對 bug：正確提取語義版本 (X.Y.Z) 進行比對，避免同版本誤判
+- About 畫面顯示完整版本號碼 (含 build number)
+- 播放器緩衝/快取預設值改為 8 MB
+- 修復舊備份匯入時 bufferSize/cacheSize 為 null 的問題
+
 ## 2.0.2+133
 
 ### 更新内容
