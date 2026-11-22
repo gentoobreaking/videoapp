@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLED_DIRECTORY = ROOT / 'native' / 'core' / 'bundled'
 MODULE_FILES = ('manifest.json', 'main.js')
-ENVIRONMENT_DEFINES = ['PROJECT_URL', 'TELEGRAM_GROUP_URL', 'TELEGRAM_CHANNEL_URL']
+ENVIRONMENT_DEFINES = ['PROJECT_URL', 'TELEGRAM_GROUP_URL', 'TELEGRAM_CHANNEL_URL', 'VIDEOAPP_RELEASE_TOKEN']
 
 
 class AppBuild:
