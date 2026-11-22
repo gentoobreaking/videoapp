@@ -24,7 +24,7 @@ class AppDevice {
     if (!PlatformCapabilities.isAndroid) {
       try {
         final info = await PackageInfo.fromPlatform();
-        return AppDevice(version: info.version);
+        return AppDevice(version: '${info.version}+${info.buildNumber}');
       } catch (_) {
         DiaryService.add('[AppDevice] 裝置偵測失敗，使用 fallback');
         return fallback;
@@ -37,18 +37,39 @@ class AppDevice {
       final television = data?['television'];
       if (television is! bool) return fallback;
       final version = data?['version'];
+      // Android 原生 deviceInfo 通常只回 x.y.z，補上 buildNumber 以顯示完整版本
+      final buildNum = (await PackageInfo.fromPlatform()).buildNumber;
+      final fullVersion = version is String && version.isNotEmpty
+          ? '$version+$buildNum'
+          : null;
       return AppDevice(
         television: television,
-        version: version is String && version.isNotEmpty
-            ? version
-            : fallback.version,
+        version: fullVersion != null && fullVersion.isNotEmpty ? fullVersion : fallback.version,
       );
     } on PlatformException {
-      return fallback;
+      // 回落：使用 PackageInfo 拼裝版本
+      try {
+        final info = await PackageInfo.fromPlatform();
+        return AppDevice(version: '${info.version}+${info.buildNumber}');
+      } catch (_) {
+        return fallback;
+      }
     } on MissingPluginException {
-      return fallback;
+      // 回落：使用 PackageInfo 拼裝版本
+      try {
+        final info = await PackageInfo.fromPlatform();
+        return AppDevice(version: '${info.version}+${info.buildNumber}');
+      } catch (_) {
+        return fallback;
+      }
     } on TimeoutException {
-      return fallback;
+      // 回落：使用 PackageInfo 拼裝版本
+      try {
+        final info = await PackageInfo.fromPlatform();
+        return AppDevice(version: '${info.version}+${info.buildNumber}');
+      } catch (_) {
+        return fallback;
+      }
     }
   }
 
