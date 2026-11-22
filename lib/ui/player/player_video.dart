@@ -142,9 +142,11 @@ class _VideoOutput {
   late final StreamSubscription<VideoParams> _subscription;
   Timer? _timer;
 
+  static const _outputSizeDebounce = Duration(milliseconds: 100);
+
   void _schedule() {
     _timer?.cancel();
-    _timer = Timer(const Duration(milliseconds: 300), _apply);
+    _timer = Timer(_outputSizeDebounce, _apply);
   }
 
   void _apply() {
