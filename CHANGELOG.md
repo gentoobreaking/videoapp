@@ -2,6 +2,13 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.5+136
+
+### 更新内容
+
+- 修復版本比對邏輯：從 GitHub release tag（app-vX.Y.Z-N-android 格式）正確提取語義版本，同版本不再誤報「發現新版本」（开发快照，需在对应平台实机测试）
+- 修復舊備份匯入時 bufferSize/cacheSize 預設值為 8 MB，不再遺失
+
 ## 2.0.4+135
 
 ### 更新内容
