@@ -147,5 +147,6 @@ class _AppBootstrapState extends State<AppBootstrap>
     onRetry: _initialize,
     television: device.television,
     version: device.version,
+    abi: device.abi,
   );
 }

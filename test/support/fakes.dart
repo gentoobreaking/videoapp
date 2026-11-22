@@ -470,7 +470,7 @@ class FakeRepository extends AppRepository {
   }) => resolve(drama, episode, quality: quality);
 
   @override
-  Future<AppUpdate?> checkUpdate(String version) async => null;
+  Future<AppUpdate?> checkUpdate(String version, {String? abi}) async => null;
 
   @override
   Future<void> reportUsage(String version) async {}

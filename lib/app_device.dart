@@ -11,9 +11,10 @@ import 'platform_capabilities.dart';
 typedef DeviceCallHandler = Future<void> Function(MethodCall call);
 
 class AppDevice {
-  const AppDevice({this.television = false, this.version = ''});
+  const AppDevice({this.television = false, this.version = '', this.abi = ''});
   final bool television;
   final String version;
+  final String abi;
   static const channel = MethodChannel('duanju/device');
   static var _televisionMode = false;
   static var _phoneMode = false;
@@ -37,6 +38,7 @@ class AppDevice {
       final television = data?['television'];
       if (television is! bool) return fallback;
       final version = data?['version'];
+      final abi = data?['abi'];
       // Android 原生 deviceInfo 通常只回 x.y.z，補上 buildNumber 以顯示完整版本
       final buildNum = (await PackageInfo.fromPlatform()).buildNumber;
       final fullVersion = version is String && version.isNotEmpty
@@ -47,6 +49,7 @@ class AppDevice {
         version: fullVersion != null && fullVersion.isNotEmpty
             ? fullVersion
             : fallback.version,
+        abi: abi is String ? abi : fallback.abi,
       );
     } on PlatformException {
       // 回落：使用 PackageInfo 拼裝版本

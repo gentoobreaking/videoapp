@@ -29,6 +29,7 @@ class DuanjuApp extends StatefulWidget {
     this.onRetry,
     this.television = false,
     this.version = '',
+    this.abi = '',
   });
   final AppRepository repository;
   final LocalStore? store;
@@ -36,6 +37,7 @@ class DuanjuApp extends StatefulWidget {
   final VoidCallback? onRetry;
   final bool television;
   final String version;
+  final String abi;
 
   @override
   State<DuanjuApp> createState() => _DuanjuAppState();
@@ -242,6 +244,7 @@ class _DuanjuAppState extends State<DuanjuApp> with WidgetsBindingObserver {
               formFactor: formFactor,
               systemColorAvailable: _systemColor != null,
               version: widget.version,
+              abi: widget.abi,
               child: CoverBlurScope(
                 mode: coverBlur,
                 enabled: !television && (store?.blurCoversButton ?? false),

@@ -23,6 +23,7 @@ Future<void> runStartupChecks(BuildContext context, LocalStore store) async {
   if (_checked) return;
   _checked = true;
   final repository = AppScope.of(context).repository;
+  final abi = AppScope.of(context).abi;
   final String current;
   final AppUpdate update;
   try {
@@ -31,7 +32,7 @@ Future<void> runStartupChecks(BuildContext context, LocalStore store) async {
       unawaited(repository.reportUsage(current).catchError((_) {}));
     }
     if (!store.checkUpdates) return;
-    final latest = await repository.checkUpdate(current);
+    final latest = await repository.checkUpdate(current, abi: abi);
     if (latest == null) return;
     update = latest;
   } catch (_) {
@@ -54,6 +55,7 @@ Future<void> runStartupChecks(BuildContext context, LocalStore store) async {
 Future<void> checkUpdateManually(BuildContext context) async {
   final repository = AppScope.of(context).repository;
   final messenger = ScaffoldMessenger.of(context);
+  final abi = AppScope.of(context).abi;
   final String current;
   final AppUpdate? update;
   try {
@@ -62,7 +64,7 @@ Future<void> checkUpdateManually(BuildContext context) async {
     if (last != null && DateTime.now().difference(last) < _manualCooldown) {
       update = _lastManualUpdate;
     } else {
-      update = await repository.checkUpdate(current);
+      update = await repository.checkUpdate(current, abi: abi);
       _lastManualCheck = DateTime.now();
       _lastManualUpdate = update;
     }
@@ -111,10 +113,19 @@ Future<void> _downloadAndInstall(BuildContext context, String url) async {
       );
       return;
     }
+    // APK 為 ZIP 封裝，開頭魔數應為 "PK"；攔截誤抓 HTML 頁面的情況
+    final bytes = response.bodyBytes;
+    final isApk = bytes.length > 2 && bytes[0] == 0x50 && bytes[1] == 0x4B;
+    if (!isApk) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('更新失败：下载内容不是有效的 APK')),
+      );
+      return;
+    }
 
     final appDir = await getApplicationDocumentsDirectory();
     final apkFile = File('${appDir.path}/$fileName');
-    await apkFile.writeAsBytes(response.bodyBytes);
+    await apkFile.writeAsBytes(bytes);
 
     messenger.showSnackBar(const SnackBar(content: Text('下载完成，正在安装...')));
 

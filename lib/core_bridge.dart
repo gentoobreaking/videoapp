@@ -162,7 +162,7 @@ abstract class AppRepository {
     Episode episode, {
     int quality = 0,
   });
-  Future<AppUpdate?> checkUpdate(String version);
+  Future<AppUpdate?> checkUpdate(String version, {String? abi});
   Future<void> reportUsage(String version);
   Future<bool> sourceDevices(String source, {bool register = false});
   Future<SoraniAccount> soraniAccount();
@@ -570,7 +570,7 @@ class NativeRepository extends AppRepository {
   List<DownloadJob> _visibleDownloads = const [];
 
   @override
-  Future<AppUpdate?> checkUpdate(String version) async {
+  Future<AppUpdate?> checkUpdate(String version, {String? abi}) async {
     final token = String.fromEnvironment('VIDEOAPP_RELEASE_TOKEN');
     final uri = Uri.parse(
       'https://api.github.com/repos/gentoobreaking/videoapp/releases/latest',
@@ -601,7 +601,31 @@ class NativeRepository extends AppRepository {
     ).firstMatch(version)?.group(0);
     if (tagSemanticVersion == null || tagSemanticVersion.isEmpty) return null;
     if (tagSemanticVersion == currentSemanticVersion) return null;
-    return AppUpdate(version: tagName, url: htmlUrl);
+    // 挑選與本機 ABI 相符的 APK 下載網址
+    final apkUrl = _selectApkUrl(data['assets'], abi);
+    return AppUpdate(
+      version: tagName,
+      url: apkUrl ?? htmlUrl,
+      pageUrl: htmlUrl,
+    );
+  }
+
+  /// 依 ABI 挑選 release asset 的 APK 下載網址。
+  /// asset 檔名格式：videoapp-2.0.4+135-arm64-v8a.apk
+  String? _selectApkUrl(Object? assets, String? abi) {
+    if (assets is! List) return null;
+    final apks = <Map<String, dynamic>>[];
+    for (final entry in assets) {
+      if (entry is! Map) continue;
+      final name = (entry['name'] as String?) ?? '';
+      final url = entry['browser_download_url'] as String?;
+      if (url == null || url.isEmpty || !name.endsWith('.apk')) continue;
+      if (abi != null && abi.isNotEmpty && name.contains(abi)) {
+        return url;
+      }
+      apks.add(entry.cast<String, dynamic>());
+    }
+    return apks.isEmpty ? null : apks.first['browser_download_url'] as String?;
   }
 
   @override

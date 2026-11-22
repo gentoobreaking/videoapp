@@ -320,7 +320,8 @@ class MainActivity : FlutterActivity() {
                     when (call.method) {
                         "deviceInfo" -> {
                             val version = packageManager.getPackageInfo(packageName, 0).versionName
-                            result.success(mapOf("television" to isTelevisionDevice(), "version" to version))
+                            val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: ""
+                            result.success(mapOf("television" to isTelevisionDevice(), "version" to version, "abi" to abi))
                         }
                         "setTelevisionMode" -> {
                             val enabled = call.argument<Boolean>("enabled")
