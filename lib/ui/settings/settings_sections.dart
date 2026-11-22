@@ -335,6 +335,19 @@ class SettingsSection extends StatelessWidget {
           ),
         ],
       ),
+      if (television)
+        SettingsCard(
+          children: [
+            SwitchTile(
+              title: '電視端保守模式',
+              subtitle:
+                  '開啟後降低記憶體與運算負載，適用於較舊的電視或機頂盒，下次播放時生效',
+              value: preferences.conservativeMode,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(conservativeMode: value)),
+            ),
+          ],
+        ),
       if (Platform.isAndroid && !television)
         SettingsCard(
           children: [
