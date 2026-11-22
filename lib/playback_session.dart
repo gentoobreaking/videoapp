@@ -643,12 +643,13 @@ class PlaybackSession extends ChangeNotifier {
     if (platform is! NativePlayer) return;
     final hwdec = switch (store.playbackPreferences.televisionDecoder) {
       TelevisionDecoder.software => 'no',
-      TelevisionDecoder.hardware when Platform.isAndroid => 'mediacodec-copy',
+      TelevisionDecoder.hardware when Platform.isAndroid => 'mediacodec',
       TelevisionDecoder.hardware when Platform.isIOS || Platform.isMacOS =>
-        'videotoolbox-copy',
-      _ when Platform.isWindows => 'd3d11va-copy',
+        'videotoolbox',
+      TelevisionDecoder.hardware when Platform.isWindows => 'd3d11va',
       _ when Platform.isAndroid => 'auto-safe',
       _ when Platform.isMacOS => 'auto-safe',
+      _ when Platform.isWindows => 'd3d11va-copy',
       _ => null,
     };
     if (hwdec != null) await platform.setProperty('hwdec', hwdec);
