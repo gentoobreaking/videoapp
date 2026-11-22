@@ -662,7 +662,10 @@ class PlaybackSession extends ChangeNotifier {
     if (Platform.isAndroid) {
       await platform.setProperty('hwdec-codecs', 'all');
       await platform.setProperty('vd-lavc-skiploopfilter', 'nonkey');
-      await platform.setProperty('vd-lavc-threads', '${prefs.decoderThreads}'); // 0 = 自動，多核機器更快
+      await platform.setProperty(
+        'vd-lavc-threads',
+        '${prefs.decoderThreads}',
+      ); // 0 = 自動，多核機器更快
       await platform.setProperty('vd-lavc-fast', 'yes');
       await platform.setProperty('video-sync', 'audio');
       await platform.setProperty('framedrop', 'vo');

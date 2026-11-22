@@ -104,7 +104,12 @@ class _OutputSizeState extends State<_OutputSize> {
     if (oldWidget.controller != widget.controller ||
         oldWidget.box != widget.box ||
         oldWidget.debounce != widget.debounce) {
-      _VideoOutput.request(widget.controller, this, widget.box, widget.debounce);
+      _VideoOutput.request(
+        widget.controller,
+        this,
+        widget.box,
+        widget.debounce,
+      );
     }
   }
 
@@ -127,8 +132,16 @@ class _VideoOutput {
 
   static final _outputs = <VideoController, _VideoOutput>{};
 
-  static void request(VideoController controller, Object owner, Size box, int debounceMs) {
-    final output = _outputs[controller] ??= _VideoOutput(controller, debounceMs);
+  static void request(
+    VideoController controller,
+    Object owner,
+    Size box,
+    int debounceMs,
+  ) {
+    final output = _outputs[controller] ??= _VideoOutput(
+      controller,
+      debounceMs,
+    );
     output._boxes[owner] = box;
     output._schedule();
   }

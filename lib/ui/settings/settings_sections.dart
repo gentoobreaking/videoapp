@@ -70,8 +70,19 @@ const _decoders = {
 const _bufferSizes = {32: '32 MB', 64: '64 MB', 128: '128 MB', 256: '256 MB'};
 const _cacheSizes = {64: '64 MB', 100: '100 MB', 200: '200 MB', 400: '400 MB'};
 const _networkTimeouts = {10: '10 秒', 20: '20 秒', 30: '30 秒', 60: '60 秒'};
-const _decoderThreads = {0: '自動', 1: '1 執行緒', 2: '2 執行緒', 4: '4 執行緒', 8: '8 執行緒'};
-const _colormatrixs = {'auto': '自動', 'bt601': 'BT.601', 'bt709': 'BT.709', 'bt2020': 'BT.2020'};
+const _decoderThreads = {
+  0: '自動',
+  1: '1 執行緒',
+  2: '2 執行緒',
+  4: '4 執行緒',
+  8: '8 執行緒',
+};
+const _colormatrixs = {
+  'auto': '自動',
+  'bt601': 'BT.601',
+  'bt709': 'BT.709',
+  'bt2020': 'BT.2020',
+};
 const _links = [
   [
     ('GitHub · 重建版', String.fromEnvironment('PROJECT_URL')),
@@ -345,11 +356,11 @@ class SettingsSection extends StatelessWidget {
           children: [
             SwitchTile(
               title: '電視端保守模式',
-              subtitle:
-                  '開啟後降低記憶體與運算負載，適用於較舊的電視或機頂盒，下次播放時生效',
+              subtitle: '開啟後降低記憶體與運算負載，適用於較舊的電視或機頂盒，下次播放時生效',
               value: preferences.conservativeMode,
-              onChanged: (value) =>
-                  savePreferences(preferences.copyWith(conservativeMode: value)),
+              onChanged: (value) => savePreferences(
+                preferences.copyWith(conservativeMode: value),
+              ),
             ),
           ],
         ),
@@ -406,8 +417,9 @@ class SettingsSection extends StatelessWidget {
             title: '高品質縮放濾鏡',
             subtitle: '使用 spline36 縮放濾鏡，畫質較佳但較耗效能',
             value: preferences.highQualityScaling,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(highQualityScaling: value)),
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(highQualityScaling: value),
+            ),
           ),
           SwitchTile(
             title: '隔行處理',
