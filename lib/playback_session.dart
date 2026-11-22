@@ -655,7 +655,10 @@ class PlaybackSession extends ChangeNotifier {
     if (hwdec != null) await platform.setProperty('hwdec', hwdec);
 
     // 網路快取與逾時：提升串流穩定性，降低啟動與跳段緩衝。
-    await platform.setProperty('cache', '102400');
+    // 電視端保守模式下縮小快取，避免佔用過多記憶體。
+    final conservative = store.playbackPreferences.conservativeMode;
+    await platform.setProperty(
+        'cache', conservative ? '65536' : '102400');
     await platform.setProperty('network-timeout', '30');
 
     if (Platform.isAndroid) {
@@ -668,16 +671,22 @@ class PlaybackSession extends ChangeNotifier {
     }
 
     // 畫質與色彩：色彩空間自動、HDR 色調映射、高品質縮放濾鏡、隔行處理。
+    // 電視端保守模式下關閉較耗效能的濾鏡與色調映射。
     await platform.setProperty('colormatrix', 'auto');
-    await platform.setProperty('tonemapping', 'generic');
-    await platform.setProperty('scale', 'spline36');
-    await platform.setProperty('cscale', 'spline36');
-    await platform.setProperty('dscale', 'mitchell');
-    await platform.setProperty('deinterlace', 'yes');
+    if (!conservative) {
+      await platform.setProperty('tonemapping', 'generic');
+      await platform.setProperty('scale', 'spline36');
+      await platform.setProperty('cscale', 'spline36');
+      await platform.setProperty('dscale', 'mitchell');
+    }
+    await platform.setProperty('deinterlace', conservative ? 'no' : 'yes');
 
     // 低畫質來源觀感：輕微銳化與降噪，採保守值避免過度改變畫面。
-    await platform.setProperty('sharpen', '0.5');
-    await platform.setProperty('denoise', '0.5');
+    // 電視端保守模式下關閉。
+    if (!conservative) {
+      await platform.setProperty('sharpen', '0.5');
+      await platform.setProperty('denoise', '0.5');
+    }
 
     await platform.setProperty(
       'demuxer-lavf-o',

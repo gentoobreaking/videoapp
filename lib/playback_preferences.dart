@@ -94,7 +94,7 @@ class PlaybackPreferences {
     this.danmakuWords = const [],
     this.preload = true,
     this.preloadDownload = false,
-    this.preloadCount = 2,
+    this.preloadCount = 1,
     this.televisionDecoder = TelevisionDecoder.optimized,
     this.preopen,
     this.doubleTapSeek = true,
@@ -108,6 +108,7 @@ class PlaybackPreferences {
     this.portraitStyleForWide = false,
     this.autoPictureInPicture = false,
     this.videoFit = VideoFit.auto,
+    this.conservativeMode = false,
   });
 
   final double speed;
@@ -143,6 +144,7 @@ class PlaybackPreferences {
   final bool portraitStyleForWide;
   final bool autoPictureInPicture;
   final VideoFit videoFit;
+  final bool conservativeMode;
 
   bool preopens({required bool television}) => preopen ?? !television;
 
@@ -177,6 +179,7 @@ class PlaybackPreferences {
     bool? portraitStyleForWide,
     bool? autoPictureInPicture,
     VideoFit? videoFit,
+    bool? conservativeMode,
   }) => PlaybackPreferences(
     speed: speed ?? this.speed,
     quality: quality ?? this.quality,
@@ -208,6 +211,7 @@ class PlaybackPreferences {
     portraitStyleForWide: portraitStyleForWide ?? this.portraitStyleForWide,
     autoPictureInPicture: autoPictureInPicture ?? this.autoPictureInPicture,
     videoFit: videoFit ?? this.videoFit,
+    conservativeMode: conservativeMode ?? this.conservativeMode,
   );
 
   Map<String, dynamic> toJson() => {
@@ -241,6 +245,7 @@ class PlaybackPreferences {
     'portraitStyleForWide': portraitStyleForWide,
     'autoPictureInPicture': autoPictureInPicture,
     'videoFit': videoFit.name,
+    'conservativeMode': conservativeMode,
   };
 
   factory PlaybackPreferences.fromJson(Map<String, dynamic> value) {
@@ -251,7 +256,7 @@ class PlaybackPreferences {
     final danmaku = value['danmaku'] as bool? ?? true;
     final preload = value['preload'] as bool? ?? true;
     final preloadDownload = value['preloadDownload'] as bool? ?? false;
-    final preloadCount = (value['preloadCount'] as int? ?? 2).clamp(1, 5);
+    final preloadCount = (value['preloadCount'] as int? ?? 1).clamp(1, 5);
     final danmakuScale = (value['danmakuScale'] as num? ?? 1).toDouble();
     final danmakuColor = value['danmakuColor'] as int? ?? 0xFFFFFFFF;
     if (!playbackSpeeds.contains(speed) || quality < 0 || quality > 4320) {
@@ -306,6 +311,7 @@ class PlaybackPreferences {
       portraitStyleForWide: value['portraitStyleForWide'] as bool? ?? false,
       autoPictureInPicture: value['autoPictureInPicture'] as bool? ?? false,
       videoFit: VideoFit.values.asNameMap()[value['videoFit']] ?? VideoFit.auto,
+      conservativeMode: value['conservativeMode'] as bool? ?? false,
     );
   }
 }
