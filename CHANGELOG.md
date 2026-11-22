@@ -2,6 +2,14 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.2+128
+
+### 更新内容
+
+- 播放器 mpv 原生屬性全部改為獨立開關，預設全關閉：cache、network-timeout、vd-lavc-threads、colormatrix、tonemapping、scale/cscale/dscale、deinterlace、sharpen/denoise（开发快照，需在对应平台实机测试）
+- network-timeout 預設值從 30 秒改回 20 秒，cache 預設不再設定（走原本 demuxer-max-bytes 邏輯）（开发快照，需在对应平台实机测试）
+- 設定介面 › 播放器進階 新增每個 mpv 屬性的「啟用」開關，可逐一開啟測試，找出導致電視黑畫面的屬性（开发快照，需在对应平台实机测试）
+
 ## 2.0.2+127
 
 ### 更新内容
