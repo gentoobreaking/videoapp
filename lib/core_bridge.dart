@@ -571,7 +571,7 @@ class NativeRepository extends AppRepository {
 
   @override
   Future<AppUpdate?> checkUpdate(String version) async {
-    final token = String.fromEnvironment('GITHUB_TOKEN');
+    final token = String.fromEnvironment('VIDEOAPP_RELEASE_TOKEN');
     final uri = Uri.parse(
       'https://api.github.com/repos/gentoobreaking/videoapp/releases/latest',
     );
