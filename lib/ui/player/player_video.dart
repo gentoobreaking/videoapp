@@ -16,10 +16,12 @@ class PlayerVideo extends StatelessWidget {
     required this.handle,
     required this.player,
     this.fit = VideoFit.auto,
+    this.debounce = 100,
   });
   final PlaybackHandle handle;
   final Player player;
   final VideoFit fit;
+  final int debounce;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +62,7 @@ class PlayerVideo extends StatelessWidget {
             return _OutputSize(
               controller: controller,
               box: output,
+              debounce: debounce,
               child: sized,
             );
           },
@@ -73,10 +76,12 @@ class _OutputSize extends StatefulWidget {
   const _OutputSize({
     required this.controller,
     required this.box,
+    required this.debounce,
     required this.child,
   });
   final VideoController controller;
   final Size box;
+  final int debounce;
   final Widget child;
 
   @override
@@ -87,7 +92,7 @@ class _OutputSizeState extends State<_OutputSize> {
   @override
   void initState() {
     super.initState();
-    _VideoOutput.request(widget.controller, this, widget.box);
+    _VideoOutput.request(widget.controller, this, widget.box, widget.debounce);
   }
 
   @override
@@ -97,8 +102,9 @@ class _OutputSizeState extends State<_OutputSize> {
       _VideoOutput.release(oldWidget.controller, this);
     }
     if (oldWidget.controller != widget.controller ||
-        oldWidget.box != widget.box) {
-      _VideoOutput.request(widget.controller, this, widget.box);
+        oldWidget.box != widget.box ||
+        oldWidget.debounce != widget.debounce) {
+      _VideoOutput.request(widget.controller, this, widget.box, widget.debounce);
     }
   }
 
@@ -113,7 +119,7 @@ class _OutputSizeState extends State<_OutputSize> {
 }
 
 class _VideoOutput {
-  _VideoOutput(this.controller) {
+  _VideoOutput(this.controller, this._debounce) {
     _subscription = controller.player.stream.videoParams.listen(
       (_) => _schedule(),
     );
@@ -121,8 +127,8 @@ class _VideoOutput {
 
   static final _outputs = <VideoController, _VideoOutput>{};
 
-  static void request(VideoController controller, Object owner, Size box) {
-    final output = _outputs[controller] ??= _VideoOutput(controller);
+  static void request(VideoController controller, Object owner, Size box, int debounceMs) {
+    final output = _outputs[controller] ??= _VideoOutput(controller, debounceMs);
     output._boxes[owner] = box;
     output._schedule();
   }
@@ -138,15 +144,14 @@ class _VideoOutput {
   }
 
   final VideoController controller;
+  final int _debounce;
   final _boxes = <Object, Size>{};
   late final StreamSubscription<VideoParams> _subscription;
   Timer? _timer;
 
-  static const _outputSizeDebounce = Duration(milliseconds: 100);
-
   void _schedule() {
     _timer?.cancel();
-    _timer = Timer(_outputSizeDebounce, _apply);
+    _timer = Timer(Duration(milliseconds: _debounce), _apply);
   }
 
   void _apply() {

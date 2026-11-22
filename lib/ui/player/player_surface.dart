@@ -334,6 +334,7 @@ class _PlayerSurfaceState extends State<PlayerSurface> {
                 handle: widget.handle,
                 player: _session.player,
                 fit: _session.videoFit,
+                debounce: _session.store.playbackPreferences.outputSizeDebounce,
               ),
             ),
             DanmakuOverlay(
