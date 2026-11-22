@@ -393,8 +393,9 @@ class SettingsSection extends StatelessWidget {
             title: '啟用 mpv 網路超時',
             subtitle: '預設關閉，開啟後才會套用 mpv network-timeout 屬性，可逐一測試找出黑畫面原因',
             value: preferences.enableMpvNetworkTimeout,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvNetworkTimeout: value)),
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(enableMpvNetworkTimeout: value),
+            ),
           ),
           ValueTile<int>(
             title: '網路超時時間',
@@ -408,8 +409,9 @@ class SettingsSection extends StatelessWidget {
             title: '啟用 mpv 解碼執行緒',
             subtitle: '預設關閉，開啟後才會套用 mpv vd-lavc-threads 屬性，可逐一測試找出黑畫面原因',
             value: preferences.enableMpvDecoderThreads,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvDecoderThreads: value)),
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(enableMpvDecoderThreads: value),
+            ),
           ),
           ValueTile<int>(
             title: '解碼執行緒數',
@@ -423,8 +425,9 @@ class SettingsSection extends StatelessWidget {
             title: '啟用 mpv 色彩空間',
             subtitle: '預設關閉，開啟後才會套用 mpv colormatrix 屬性，可逐一測試找出黑畫面原因',
             value: preferences.enableMpvColormatrix,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvColormatrix: value)),
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(enableMpvColormatrix: value),
+            ),
           ),
           ValueTile<String>(
             title: '色彩空間',
@@ -438,8 +441,9 @@ class SettingsSection extends StatelessWidget {
             title: '啟用 mpv HDR 色調映射',
             subtitle: '預設關閉，開啟後才會套用 mpv tonemapping 屬性，可逐一測試找出黑畫面原因',
             value: preferences.enableMpvTonemapping,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvTonemapping: value)),
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(enableMpvTonemapping: value),
+            ),
           ),
           SwitchTile(
             title: 'HDR 色調映射',
@@ -452,8 +456,9 @@ class SettingsSection extends StatelessWidget {
             title: '啟用 mpv 高品質縮放濾鏡',
             subtitle: '預設關閉，開啟後才會套用 mpv scale/cscale/dscale 屬性，可逐一測試找出黑畫面原因',
             value: preferences.enableMpvHighQualityScaling,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvHighQualityScaling: value)),
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(enableMpvHighQualityScaling: value),
+            ),
           ),
           SwitchTile(
             title: '高品質縮放濾鏡',
@@ -467,8 +472,9 @@ class SettingsSection extends StatelessWidget {
             title: '啟用 mpv 隔行處理',
             subtitle: '預設關閉，開啟後才會套用 mpv deinterlace 屬性，可逐一測試找出黑畫面原因',
             value: preferences.enableMpvDeinterlace,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvDeinterlace: value)),
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(enableMpvDeinterlace: value),
+            ),
           ),
           SwitchTile(
             title: '隔行處理',
@@ -481,8 +487,9 @@ class SettingsSection extends StatelessWidget {
             title: '啟用 mpv 銳化與降噪',
             subtitle: '預設關閉，開啟後才會套用 mpv sharpen/denoise 屬性，可逐一測試找出黑畫面原因',
             value: preferences.enableMpvSharpenDenoise,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvSharpenDenoise: value)),
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(enableMpvSharpenDenoise: value),
+            ),
           ),
           SwitchTile(
             title: '銳化與降噪',

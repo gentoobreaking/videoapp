@@ -277,13 +277,17 @@ class PlaybackPreferences {
     sharpenDenoise: sharpenDenoise ?? this.sharpenDenoise,
     outputSizeDebounce: outputSizeDebounce ?? this.outputSizeDebounce,
     enableMpvCache: enableMpvCache ?? this.enableMpvCache,
-    enableMpvNetworkTimeout: enableMpvNetworkTimeout ?? this.enableMpvNetworkTimeout,
-    enableMpvDecoderThreads: enableMpvDecoderThreads ?? this.enableMpvDecoderThreads,
+    enableMpvNetworkTimeout:
+        enableMpvNetworkTimeout ?? this.enableMpvNetworkTimeout,
+    enableMpvDecoderThreads:
+        enableMpvDecoderThreads ?? this.enableMpvDecoderThreads,
     enableMpvColormatrix: enableMpvColormatrix ?? this.enableMpvColormatrix,
     enableMpvTonemapping: enableMpvTonemapping ?? this.enableMpvTonemapping,
-    enableMpvHighQualityScaling: enableMpvHighQualityScaling ?? this.enableMpvHighQualityScaling,
+    enableMpvHighQualityScaling:
+        enableMpvHighQualityScaling ?? this.enableMpvHighQualityScaling,
     enableMpvDeinterlace: enableMpvDeinterlace ?? this.enableMpvDeinterlace,
-    enableMpvSharpenDenoise: enableMpvSharpenDenoise ?? this.enableMpvSharpenDenoise,
+    enableMpvSharpenDenoise:
+        enableMpvSharpenDenoise ?? this.enableMpvSharpenDenoise,
   );
 
   Map<String, dynamic> toJson() => {
@@ -413,13 +417,17 @@ class PlaybackPreferences {
       sharpenDenoise: value['sharpenDenoise'] as bool? ?? true,
       outputSizeDebounce: (value['outputSizeDebounce'] as num? ?? 100).toInt(),
       enableMpvCache: value['enableMpvCache'] as bool? ?? false,
-      enableMpvNetworkTimeout: value['enableMpvNetworkTimeout'] as bool? ?? false,
-      enableMpvDecoderThreads: value['enableMpvDecoderThreads'] as bool? ?? false,
+      enableMpvNetworkTimeout:
+          value['enableMpvNetworkTimeout'] as bool? ?? false,
+      enableMpvDecoderThreads:
+          value['enableMpvDecoderThreads'] as bool? ?? false,
       enableMpvColormatrix: value['enableMpvColormatrix'] as bool? ?? false,
       enableMpvTonemapping: value['enableMpvTonemapping'] as bool? ?? false,
-      enableMpvHighQualityScaling: value['enableMpvHighQualityScaling'] as bool? ?? false,
+      enableMpvHighQualityScaling:
+          value['enableMpvHighQualityScaling'] as bool? ?? false,
       enableMpvDeinterlace: value['enableMpvDeinterlace'] as bool? ?? false,
-      enableMpvSharpenDenoise: value['enableMpvSharpenDenoise'] as bool? ?? false,
+      enableMpvSharpenDenoise:
+          value['enableMpvSharpenDenoise'] as bool? ?? false,
     );
   }
 }
