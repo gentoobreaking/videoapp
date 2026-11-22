@@ -657,8 +657,7 @@ class PlaybackSession extends ChangeNotifier {
     // 網路快取與逾時：提升串流穩定性，降低啟動與跳段緩衝。
     // 電視端保守模式下縮小快取，避免佔用過多記憶體。
     final conservative = store.playbackPreferences.conservativeMode;
-    await platform.setProperty(
-        'cache', conservative ? '65536' : '102400');
+    await platform.setProperty('cache', conservative ? '65536' : '102400');
     await platform.setProperty('network-timeout', '30');
 
     if (Platform.isAndroid) {

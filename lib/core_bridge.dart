@@ -583,8 +583,10 @@ class NativeRepository extends AppRepository {
     );
     if (response.statusCode != 200) return null;
     final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final tagName =
-        (data['tag_name'] as String?)?.replaceFirst(RegExp('^v'), '');
+    final tagName = (data['tag_name'] as String?)?.replaceFirst(
+      RegExp('^v'),
+      '',
+    );
     final htmlUrl = data['html_url'] as String?;
     if (tagName == null || tagName.isEmpty || htmlUrl == null) return null;
     if (tagName == version) return null;
