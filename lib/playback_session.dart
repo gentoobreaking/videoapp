@@ -655,35 +655,35 @@ class PlaybackSession extends ChangeNotifier {
     if (hwdec != null) await platform.setProperty('hwdec', hwdec);
 
     // 網路快取與逾時：提升串流穩定性，降低啟動與跳段緩衝。
-    // 電視端保守模式下縮小快取，避免佔用過多記憶體。
-    final conservative = store.playbackPreferences.conservativeMode;
-    await platform.setProperty(
-        'cache', conservative ? '65536' : '102400');
-    await platform.setProperty('network-timeout', '30');
+    final prefs = store.playbackPreferences;
+    await platform.setProperty('cache', '${prefs.cacheSize * 1024}');
+    await platform.setProperty('network-timeout', '${prefs.networkTimeout}');
 
     if (Platform.isAndroid) {
       await platform.setProperty('hwdec-codecs', 'all');
       await platform.setProperty('vd-lavc-skiploopfilter', 'nonkey');
-      await platform.setProperty('vd-lavc-threads', '0'); // 0 = 自動，多核機器更快
+      await platform.setProperty('vd-lavc-threads', '${prefs.decoderThreads}'); // 0 = 自動，多核機器更快
       await platform.setProperty('vd-lavc-fast', 'yes');
       await platform.setProperty('video-sync', 'audio');
       await platform.setProperty('framedrop', 'vo');
     }
 
     // 畫質與色彩：色彩空間自動、HDR 色調映射、高品質縮放濾鏡、隔行處理。
-    // 電視端保守模式下關閉較耗效能的濾鏡與色調映射。
-    await platform.setProperty('colormatrix', 'auto');
-    if (!conservative) {
+    await platform.setProperty('colormatrix', prefs.colormatrix);
+    if (prefs.tonemapping) {
       await platform.setProperty('tonemapping', 'generic');
+    }
+    if (prefs.highQualityScaling) {
       await platform.setProperty('scale', 'spline36');
       await platform.setProperty('cscale', 'spline36');
       await platform.setProperty('dscale', 'mitchell');
     }
-    await platform.setProperty('deinterlace', conservative ? 'no' : 'yes');
+    if (prefs.deinterlace) {
+      await platform.setProperty('deinterlace', 'yes');
+    }
 
     // 低畫質來源觀感：輕微銳化與降噪，採保守值避免過度改變畫面。
-    // 電視端保守模式下關閉。
-    if (!conservative) {
+    if (prefs.sharpenDenoise) {
       await platform.setProperty('sharpen', '0.5');
       await platform.setProperty('denoise', '0.5');
     }
