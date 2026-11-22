@@ -89,15 +89,16 @@ Future<void> checkUpdateManually(BuildContext context) async {
 
 Future<void> _downloadAndInstall(BuildContext context, String url) async {
   if (!Platform.isAndroid) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('仅支持 Android 平台的原生安装')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('仅支持 Android 平台的原生安装')));
     return;
   }
 
   final messenger = ScaffoldMessenger.of(context);
   final uri = Uri.parse(url);
-  final fileName = 'videoapp-${DateTime.now().toIso8601String().substring(0, 10)}.apk';
+  final fileName =
+      'videoapp-${DateTime.now().toIso8601String().substring(0, 10)}.apk';
 
   // Download APK
   messenger.showSnackBar(const SnackBar(content: Text('正在下载更新包...')));
@@ -120,9 +121,7 @@ Future<void> _downloadAndInstall(BuildContext context, String url) async {
     // Trigger installation via native code
     await AppDevice.installApk(apkFile.path);
   } catch (e) {
-    messenger.showSnackBar(
-      SnackBar(content: Text('更新失败：$e')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text('更新失败：$e')));
   }
 }
 
@@ -137,9 +136,7 @@ Future<_UpdateChoice?> _askUpdate(
     builder: (dialogContext) => AlertDialog(
       title: Text('发现新版本 ${update.version}'),
       content: Text(
-        manual
-            ? '当前版本 $current。'
-            : '当前版本 $current。选「不再提醒」后可在设置 › 关于中重新打开检查更新。',
+        manual ? '当前版本 $current。' : '当前版本 $current。选「不再提醒」后可在设置 › 关于中重新打开检查更新。',
       ),
       actions: [
         for (final (choice, label) in [
@@ -158,7 +155,8 @@ Future<_UpdateChoice?> _askUpdate(
           radius: 20,
           child: FilledButton(
             autofocus: true,
-            onPressed: () => Navigator.pop(dialogContext, _UpdateChoice.download),
+            onPressed: () =>
+                Navigator.pop(dialogContext, _UpdateChoice.download),
             child: const Text('更新'),
           ),
         ),
