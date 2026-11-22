@@ -91,3 +91,11 @@
 - AppRepository 移除所有 no-op/throw 預設實作，僅留抽象簽名；預設行為移至 FakeRepository，避免「忘記實作」在執行期才拋例外
 - 平台判斷集中到 platform_capabilities.dart，遷移 app_scope.dart、app_device.dart、picture_in_picture.dart，避免 Platform.isX 散落各處
 - 補 native/core network_limiter 與 catalog_cache 單元測試（限流、回退、間隔、context 取消、合併去重、遷移、通用分類等）
+
+## 2.0.3+134
+
+### 更新内容
+
+- 修復 Android App 中 `FileProvider` 缺失導入問題，支援 release APK 编译
+- 修復版本比對 bug：`currentAppVersion()` 返回 `"2.0.3+134"` 時，不再誤判為有更新
+- About 畫面新增顯示完整版本號碼：`2.0.3+134`（含 build number）
