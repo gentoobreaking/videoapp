@@ -94,7 +94,7 @@ class PlaybackPreferences {
     this.danmakuWords = const [],
     this.preload = true,
     this.preloadDownload = false,
-    this.preloadCount = 1,
+    this.preloadCount = 2,
     this.televisionDecoder = TelevisionDecoder.optimized,
     this.preopen,
     this.doubleTapSeek = true,
@@ -251,7 +251,7 @@ class PlaybackPreferences {
     final danmaku = value['danmaku'] as bool? ?? true;
     final preload = value['preload'] as bool? ?? true;
     final preloadDownload = value['preloadDownload'] as bool? ?? false;
-    final preloadCount = (value['preloadCount'] as int? ?? 1).clamp(1, 5);
+    final preloadCount = (value['preloadCount'] as int? ?? 2).clamp(1, 5);
     final danmakuScale = (value['danmakuScale'] as num? ?? 1).toDouble();
     final danmakuColor = value['danmakuColor'] as int? ?? 0xFFFFFFFF;
     if (!playbackSpeeds.contains(speed) || quality < 0 || quality > 4320) {
