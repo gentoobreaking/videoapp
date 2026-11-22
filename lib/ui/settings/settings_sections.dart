@@ -68,7 +68,13 @@ const _decoders = {
   TelevisionDecoder.software: '软解（兼容）',
 };
 const _bufferSizes = {32: '32 MB', 64: '64 MB', 128: '128 MB', 256: '256 MB'};
-const _cacheSizes = {64: '64 MB', 100: '100 MB', 200: '200 MB', 400: '400 MB'};
+const _cacheSizes = {
+  null: '關閉',
+  64: '64 MB',
+  100: '100 MB',
+  200: '200 MB',
+  400: '400 MB',
+};
 const _networkTimeouts = {10: '10 秒', 20: '20 秒', 30: '30 秒', 60: '60 秒'};
 const _decoderThreads = {
   0: '自動',
@@ -366,153 +372,98 @@ class SettingsSection extends StatelessWidget {
         ),
       SettingsCard(
         children: [
-          ValueTile<int>(
-            title: '播放器緩衝大小',
-            subtitle: '播放器緩衝池大小，越大啟動越穩定，佔用記憶體越多',
-            options: _bufferSizes,
-            value: preferences.bufferSize,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(bufferSize: value)),
-          ),
           SwitchTile(
-            title: '啟用 mpv 網路快取',
-            subtitle: '預設關閉，開啟後才會套用 mpv cache 屬性，可逐一測試找出黑畫面原因',
-            value: preferences.enableMpvCache,
+            title: '啟用進階播放器優化',
+            subtitle: '預設關閉，開啟後可調整網路超時、解碼執行緒、色彩空間、色調映射、縮放濾鏡、隔行處理與銳化降噪等參數',
+            value: preferences.enableMpvAdvanced,
             onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvCache: value)),
+                savePreferences(preferences.copyWith(enableMpvAdvanced: value)),
           ),
-          ValueTile<int>(
+          ValueTile<int?>(
             title: '網路快取大小',
-            subtitle: '需先開啟「啟用 mpv 網路快取」才會生效，越大越不易卡斷，佔用記憶體越多',
+            subtitle: '關閉時使用播放器內建預設快取，開啟後可指定快取大小',
             options: _cacheSizes,
             value: preferences.cacheSize,
             onChanged: (value) =>
                 savePreferences(preferences.copyWith(cacheSize: value)),
           ),
-          SwitchTile(
-            title: '啟用 mpv 網路超時',
-            subtitle: '預設關閉，開啟後才會套用 mpv network-timeout 屬性，可逐一測試找出黑畫面原因',
-            value: preferences.enableMpvNetworkTimeout,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(enableMpvNetworkTimeout: value),
+          if (preferences.enableMpvAdvanced) ...[
+            ValueTile<int>(
+              title: '播放器緩衝大小',
+              subtitle: '播放器緩衝池大小，越大啟動越穩定，佔用記憶體越多',
+              options: _bufferSizes,
+              value: preferences.bufferSize,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(bufferSize: value)),
             ),
-          ),
-          ValueTile<int>(
-            title: '網路超時時間',
-            subtitle: '需先開啟「啟用 mpv 網路超時」才會生效，解析播放地址時的等待超時秒數',
-            options: _networkTimeouts,
-            value: preferences.networkTimeout,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(networkTimeout: value)),
-          ),
-          SwitchTile(
-            title: '啟用 mpv 解碼執行緒',
-            subtitle: '預設關閉，開啟後才會套用 mpv vd-lavc-threads 屬性，可逐一測試找出黑畫面原因',
-            value: preferences.enableMpvDecoderThreads,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(enableMpvDecoderThreads: value),
+            ValueTile<int>(
+              title: '網路超時時間',
+              subtitle: '解析播放地址時的等待超時秒數',
+              options: _networkTimeouts,
+              value: preferences.networkTimeout,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(networkTimeout: value)),
             ),
-          ),
-          ValueTile<int>(
-            title: '解碼執行緒數',
-            subtitle: '需先開啟「啟用 mpv 解碼執行緒」才會生效，0 為自動，適合多核裝置提升解碼效率',
-            options: _decoderThreads,
-            value: preferences.decoderThreads,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(decoderThreads: value)),
-          ),
-          SwitchTile(
-            title: '啟用 mpv 色彩空間',
-            subtitle: '預設關閉，開啟後才會套用 mpv colormatrix 屬性，可逐一測試找出黑畫面原因',
-            value: preferences.enableMpvColormatrix,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(enableMpvColormatrix: value),
+            ValueTile<int>(
+              title: '解碼執行緒數',
+              subtitle: '0 為自動，適合多核裝置提升解碼效率',
+              options: _decoderThreads,
+              value: preferences.decoderThreads,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(decoderThreads: value)),
             ),
-          ),
-          ValueTile<String>(
-            title: '色彩空間',
-            subtitle: '需先開啟「啟用 mpv 色彩空間」才會生效，影片色彩空間解碼標準，自動通常即可',
-            options: _colormatrixs,
-            value: preferences.colormatrix,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(colormatrix: value)),
-          ),
-          SwitchTile(
-            title: '啟用 mpv HDR 色調映射',
-            subtitle: '預設關閉，開啟後才會套用 mpv tonemapping 屬性，可逐一測試找出黑畫面原因',
-            value: preferences.enableMpvTonemapping,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(enableMpvTonemapping: value),
+            ValueTile<String>(
+              title: '色彩空間',
+              subtitle: '影片色彩空間解碼標準，自動通常即可',
+              options: _colormatrixs,
+              value: preferences.colormatrix,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(colormatrix: value)),
             ),
-          ),
-          SwitchTile(
-            title: 'HDR 色調映射',
-            subtitle: '需先開啟「啟用 mpv HDR 色調映射」才會生效，開啟後可改善 HDR 影片色彩，較耗 GPU 效能',
-            value: preferences.tonemapping,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(tonemapping: value)),
-          ),
-          SwitchTile(
-            title: '啟用 mpv 高品質縮放濾鏡',
-            subtitle: '預設關閉，開啟後才會套用 mpv scale/cscale/dscale 屬性，可逐一測試找出黑畫面原因',
-            value: preferences.enableMpvHighQualityScaling,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(enableMpvHighQualityScaling: value),
+            SwitchTile(
+              title: 'HDR 色調映射',
+              subtitle: '開啟後可改善 HDR 影片色彩，較耗 GPU 效能',
+              value: preferences.tonemapping,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(tonemapping: value)),
             ),
-          ),
-          SwitchTile(
-            title: '高品質縮放濾鏡',
-            subtitle: '需先開啟「啟用 mpv 高品質縮放濾鏡」才會生效，使用 spline36 縮放濾鏡，畫質較佳但較耗效能',
-            value: preferences.highQualityScaling,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(highQualityScaling: value),
+            SwitchTile(
+              title: '高品質縮放濾鏡',
+              subtitle: '使用 spline36 縮放濾鏡，畫質較佳但較耗效能',
+              value: preferences.highQualityScaling,
+              onChanged: (value) => savePreferences(
+                preferences.copyWith(highQualityScaling: value),
+              ),
             ),
-          ),
-          SwitchTile(
-            title: '啟用 mpv 隔行處理',
-            subtitle: '預設關閉，開啟後才會套用 mpv deinterlace 屬性，可逐一測試找出黑畫面原因',
-            value: preferences.enableMpvDeinterlace,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(enableMpvDeinterlace: value),
+            SwitchTile(
+              title: '隔行處理',
+              subtitle: '針對隔行源影片進行處理，較舊影片可開啟',
+              value: preferences.deinterlace,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(deinterlace: value)),
             ),
-          ),
-          SwitchTile(
-            title: '隔行處理',
-            subtitle: '需先開啟「啟用 mpv 隔行處理」才會生效，針對隔行源影片進行處理，較舊影片可開啟',
-            value: preferences.deinterlace,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(deinterlace: value)),
-          ),
-          SwitchTile(
-            title: '啟用 mpv 銳化與降噪',
-            subtitle: '預設關閉，開啟後才會套用 mpv sharpen/denoise 屬性，可逐一測試找出黑畫面原因',
-            value: preferences.enableMpvSharpenDenoise,
-            onChanged: (value) => savePreferences(
-              preferences.copyWith(enableMpvSharpenDenoise: value),
+            SwitchTile(
+              title: '銳化與降噪',
+              subtitle: '輕微銳化與降噪，改善低畫質來源觀感，較耗效能',
+              value: preferences.sharpenDenoise,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(sharpenDenoise: value)),
             ),
-          ),
+          ],
+        ],
+      ),
+      SettingsCard(
+        children: [
           SwitchTile(
-            title: '銳化與降噪',
-            subtitle: '需先開啟「啟用 mpv 銳化與降噪」才會生效，輕微銳化與降噪，改善低畫質來源觀感，較耗效能',
-            value: preferences.sharpenDenoise,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(sharpenDenoise: value)),
+            title: '离开应用时自动小窗',
+            subtitle: '播放中回到桌面时自动进入画中画',
+            value: preferences.autoPictureInPicture,
+            onChanged: (value) => savePreferences(
+              preferences.copyWith(autoPictureInPicture: value),
+            ),
           ),
         ],
       ),
-      if (Platform.isAndroid && !television)
-        SettingsCard(
-          children: [
-            SwitchTile(
-              title: '离开应用时自动小窗',
-              subtitle: '播放中回到桌面时自动进入画中画',
-              value: preferences.autoPictureInPicture,
-              onChanged: (value) => savePreferences(
-                preferences.copyWith(autoPictureInPicture: value),
-              ),
-            ),
-          ],
-        ),
       if (Platform.isWindows || Platform.isMacOS)
         SettingsCard(
           children: [

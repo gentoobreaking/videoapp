@@ -110,7 +110,7 @@ class PlaybackPreferences {
     this.videoFit = VideoFit.auto,
     this.conservativeMode = false,
     this.bufferSize = 64,
-    this.cacheSize = 100,
+    this.cacheSize,
     this.networkTimeout = 20,
     this.decoderThreads = 0,
     this.colormatrix = 'auto',
@@ -119,14 +119,7 @@ class PlaybackPreferences {
     this.deinterlace = false,
     this.sharpenDenoise = false,
     this.outputSizeDebounce = 100,
-    this.enableMpvCache = false,
-    this.enableMpvNetworkTimeout = false,
-    this.enableMpvDecoderThreads = false,
-    this.enableMpvColormatrix = false,
-    this.enableMpvTonemapping = false,
-    this.enableMpvHighQualityScaling = false,
-    this.enableMpvDeinterlace = false,
-    this.enableMpvSharpenDenoise = false,
+    this.enableMpvAdvanced = false,
   });
 
   final double speed;
@@ -164,7 +157,7 @@ class PlaybackPreferences {
   final VideoFit videoFit;
   final bool conservativeMode;
   final int bufferSize;
-  final int cacheSize;
+  final int? cacheSize;
   final int networkTimeout;
   final int decoderThreads;
   final String colormatrix;
@@ -173,14 +166,7 @@ class PlaybackPreferences {
   final bool deinterlace;
   final bool sharpenDenoise;
   final int outputSizeDebounce;
-  final bool enableMpvCache;
-  final bool enableMpvNetworkTimeout;
-  final bool enableMpvDecoderThreads;
-  final bool enableMpvColormatrix;
-  final bool enableMpvTonemapping;
-  final bool enableMpvHighQualityScaling;
-  final bool enableMpvDeinterlace;
-  final bool enableMpvSharpenDenoise;
+  final bool enableMpvAdvanced;
 
   bool preopens({required bool television}) => preopen ?? !television;
 
@@ -226,14 +212,7 @@ class PlaybackPreferences {
     bool? deinterlace,
     bool? sharpenDenoise,
     int? outputSizeDebounce,
-    bool? enableMpvCache,
-    bool? enableMpvNetworkTimeout,
-    bool? enableMpvDecoderThreads,
-    bool? enableMpvColormatrix,
-    bool? enableMpvTonemapping,
-    bool? enableMpvHighQualityScaling,
-    bool? enableMpvDeinterlace,
-    bool? enableMpvSharpenDenoise,
+    bool? enableMpvAdvanced,
   }) => PlaybackPreferences(
     speed: speed ?? this.speed,
     quality: quality ?? this.quality,
@@ -276,18 +255,7 @@ class PlaybackPreferences {
     deinterlace: deinterlace ?? this.deinterlace,
     sharpenDenoise: sharpenDenoise ?? this.sharpenDenoise,
     outputSizeDebounce: outputSizeDebounce ?? this.outputSizeDebounce,
-    enableMpvCache: enableMpvCache ?? this.enableMpvCache,
-    enableMpvNetworkTimeout:
-        enableMpvNetworkTimeout ?? this.enableMpvNetworkTimeout,
-    enableMpvDecoderThreads:
-        enableMpvDecoderThreads ?? this.enableMpvDecoderThreads,
-    enableMpvColormatrix: enableMpvColormatrix ?? this.enableMpvColormatrix,
-    enableMpvTonemapping: enableMpvTonemapping ?? this.enableMpvTonemapping,
-    enableMpvHighQualityScaling:
-        enableMpvHighQualityScaling ?? this.enableMpvHighQualityScaling,
-    enableMpvDeinterlace: enableMpvDeinterlace ?? this.enableMpvDeinterlace,
-    enableMpvSharpenDenoise:
-        enableMpvSharpenDenoise ?? this.enableMpvSharpenDenoise,
+    enableMpvAdvanced: enableMpvAdvanced ?? this.enableMpvAdvanced,
   );
 
   Map<String, dynamic> toJson() => {
@@ -332,14 +300,7 @@ class PlaybackPreferences {
     'deinterlace': deinterlace,
     'sharpenDenoise': sharpenDenoise,
     'outputSizeDebounce': outputSizeDebounce,
-    'enableMpvCache': enableMpvCache,
-    'enableMpvNetworkTimeout': enableMpvNetworkTimeout,
-    'enableMpvDecoderThreads': enableMpvDecoderThreads,
-    'enableMpvColormatrix': enableMpvColormatrix,
-    'enableMpvTonemapping': enableMpvTonemapping,
-    'enableMpvHighQualityScaling': enableMpvHighQualityScaling,
-    'enableMpvDeinterlace': enableMpvDeinterlace,
-    'enableMpvSharpenDenoise': enableMpvSharpenDenoise,
+    'enableMpvAdvanced': enableMpvAdvanced,
   };
 
   factory PlaybackPreferences.fromJson(Map<String, dynamic> value) {
@@ -407,7 +368,7 @@ class PlaybackPreferences {
       videoFit: VideoFit.values.asNameMap()[value['videoFit']] ?? VideoFit.auto,
       conservativeMode: value['conservativeMode'] as bool? ?? false,
       bufferSize: (value['bufferSize'] as num? ?? 64).toInt(),
-      cacheSize: (value['cacheSize'] as num? ?? 100).toInt(),
+      cacheSize: (value['cacheSize'] as num?)?.toInt(),
       networkTimeout: (value['networkTimeout'] as num? ?? 20).toInt(),
       decoderThreads: (value['decoderThreads'] as num? ?? 0).toInt(),
       colormatrix: value['colormatrix'] as String? ?? 'auto',
@@ -416,18 +377,7 @@ class PlaybackPreferences {
       deinterlace: value['deinterlace'] as bool? ?? false,
       sharpenDenoise: value['sharpenDenoise'] as bool? ?? false,
       outputSizeDebounce: (value['outputSizeDebounce'] as num? ?? 100).toInt(),
-      enableMpvCache: value['enableMpvCache'] as bool? ?? false,
-      enableMpvNetworkTimeout:
-          value['enableMpvNetworkTimeout'] as bool? ?? false,
-      enableMpvDecoderThreads:
-          value['enableMpvDecoderThreads'] as bool? ?? false,
-      enableMpvColormatrix: value['enableMpvColormatrix'] as bool? ?? false,
-      enableMpvTonemapping: value['enableMpvTonemapping'] as bool? ?? false,
-      enableMpvHighQualityScaling:
-          value['enableMpvHighQualityScaling'] as bool? ?? false,
-      enableMpvDeinterlace: value['enableMpvDeinterlace'] as bool? ?? false,
-      enableMpvSharpenDenoise:
-          value['enableMpvSharpenDenoise'] as bool? ?? false,
+      enableMpvAdvanced: value['enableMpvAdvanced'] as bool? ?? false,
     );
   }
 }

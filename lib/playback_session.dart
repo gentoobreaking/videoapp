@@ -655,19 +655,20 @@ class PlaybackSession extends ChangeNotifier {
     if (hwdec != null) await platform.setProperty('hwdec', hwdec);
 
     // 網路快取與逾時：提升串流穩定性，降低啟動與跳段緩衝。
-    // 預設全關閉，可在設定介面逐一開啟測試，找出導致黑畫面的屬性。
+    // 僅在啟用進階播放器優化時套用。
     final prefs = store.playbackPreferences;
-    if (prefs.enableMpvCache) {
-      await platform.setProperty('cache', '${prefs.cacheSize * 1024}');
+    final cacheSize = prefs.cacheSize;
+    if (cacheSize != null) {
+      await platform.setProperty('cache', '${cacheSize * 1024}');
     }
-    if (prefs.enableMpvNetworkTimeout) {
+    if (prefs.enableMpvAdvanced) {
       await platform.setProperty('network-timeout', '${prefs.networkTimeout}');
     }
 
     if (Platform.isAndroid) {
       await platform.setProperty('hwdec-codecs', 'all');
       await platform.setProperty('vd-lavc-skiploopfilter', 'nonkey');
-      if (prefs.enableMpvDecoderThreads) {
+      if (prefs.enableMpvAdvanced) {
         await platform.setProperty(
           'vd-lavc-threads',
           '${prefs.decoderThreads}',
@@ -679,27 +680,26 @@ class PlaybackSession extends ChangeNotifier {
     }
 
     // 畫質與色彩：色彩空間自動、HDR 色調映射、高品質縮放濾鏡、隔行處理。
-    // 預設全關閉，可在設定介面逐一開啟測試。
-    if (prefs.enableMpvColormatrix) {
+    // 僅在啟用進階播放器優化時套用。
+    if (prefs.enableMpvAdvanced) {
       await platform.setProperty('colormatrix', prefs.colormatrix);
-    }
-    if (prefs.enableMpvTonemapping) {
-      await platform.setProperty('tonemapping', 'generic');
-    }
-    if (prefs.enableMpvHighQualityScaling) {
-      await platform.setProperty('scale', 'spline36');
-      await platform.setProperty('cscale', 'spline36');
-      await platform.setProperty('dscale', 'mitchell');
-    }
-    if (prefs.enableMpvDeinterlace) {
-      await platform.setProperty('deinterlace', 'yes');
-    }
+      if (prefs.tonemapping) {
+        await platform.setProperty('tonemapping', 'generic');
+      }
+      if (prefs.highQualityScaling) {
+        await platform.setProperty('scale', 'spline36');
+        await platform.setProperty('cscale', 'spline36');
+        await platform.setProperty('dscale', 'mitchell');
+      }
+      if (prefs.deinterlace) {
+        await platform.setProperty('deinterlace', 'yes');
+      }
 
-    // 低畫質來源觀感：輕微銳化與降噪，採保守值避免過度改變畫面。
-    // 預設關閉，可在設定介面開啟。
-    if (prefs.enableMpvSharpenDenoise) {
-      await platform.setProperty('sharpen', '0.5');
-      await platform.setProperty('denoise', '0.5');
+      // 低畫質來源觀感：輕微銳化與降噪，採保守值避免過度改變畫面。
+      if (prefs.sharpenDenoise) {
+        await platform.setProperty('sharpen', '0.5');
+        await platform.setProperty('denoise', '0.5');
+      }
     }
 
     await platform.setProperty(
