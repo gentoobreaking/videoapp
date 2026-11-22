@@ -49,7 +49,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   3. 執行 `flutter test --dart-define=DISABLE_REMOTE_IMAGES=true` 和 `flutter test --dart-define=DISABLE_REMOTE_IMAGES=true --dart-define=ONLY_HONGGUO=true`，確認所有測試通過。
   4. 回報以上驗證結果給使用者。
   5. 等待使用者明確同意（例如：「可以 push」或「好的，push 吧」）。
-  6. 僅在取得使用者同意後，才執行 `git push origin main`。
+  6. 僅在取得使用者同意後，才執行 "版本號递增" 及 `git push origin main`。
 
 ## 站源
 
