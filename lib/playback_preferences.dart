@@ -108,12 +108,12 @@ class PlaybackPreferences {
     this.portraitStyleForWide = false,
     this.autoPictureInPicture = false,
     this.videoFit = VideoFit.auto,
-    this.bufferSize,
-    this.cacheSize,
     this.networkTimeout = 15,
     this.decoderThreads = 0,
     this.colormatrix = 'auto',
     this.outputSizeDebounce = 100,
+    this.bufferSize = 8,
+    this.cacheSize = 8,
   });
 
   final double speed;
