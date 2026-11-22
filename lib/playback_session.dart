@@ -927,7 +927,9 @@ class PlaybackSession extends ChangeNotifier {
     _notify();
     _syncDanmaku();
     try {
-      await _limitCache(next, false);
+      // 重新套用播放偏好（硬體解碼、快取、濾鏡等），確保換集後新設定生效
+      await _configure(next, plan);
+      await next.open(Media(plan.url, httpHeaders: plan.headers), play: false);
       await next.setVolume(volume);
       await _setRate(_rate);
       await stopping;
