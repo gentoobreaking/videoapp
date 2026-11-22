@@ -44,7 +44,9 @@ class AppDevice {
           : null;
       return AppDevice(
         television: television,
-        version: fullVersion != null && fullVersion.isNotEmpty ? fullVersion : fallback.version,
+        version: fullVersion != null && fullVersion.isNotEmpty
+            ? fullVersion
+            : fallback.version,
       );
     } on PlatformException {
       // 回落：使用 PackageInfo 拼裝版本
