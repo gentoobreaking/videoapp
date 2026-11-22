@@ -279,6 +279,16 @@ class AppDevice {
       return null;
     }
   }
+
+  static Future<void> installApk(String apkPath) async {
+    if (!PlatformCapabilities.isAndroid) return;
+    try {
+      await channel.invokeMethod<void>('installApk', {'path': apkPath});
+    } catch (e) {
+      DiaryService.add('[AppDevice] installApk 失敗: $e');
+      rethrow;
+    }
+  }
 }
 
 enum PlayerOrientation {

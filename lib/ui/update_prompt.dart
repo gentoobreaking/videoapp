@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 
+import '../app_device.dart';
 import '../app_update.dart';
 import '../core_bridge.dart';
 import '../local_store.dart';
@@ -43,7 +45,7 @@ Future<void> runStartupChecks(BuildContext context, LocalStore store) async {
     case _UpdateChoice.skip:
       await store.setIgnoredUpdate(update.version);
     case _UpdateChoice.download:
-      if (context.mounted) await _openRelease(context, update.url);
+      if (context.mounted) await _downloadAndInstall(context, update.url);
     case _UpdateChoice.dismiss || null:
       return;
   }
@@ -81,7 +83,46 @@ Future<void> checkUpdateManually(BuildContext context) async {
   if (!context.mounted) return;
   final choice = await _askUpdate(context, current, update, manual: true);
   if (choice == _UpdateChoice.download && context.mounted) {
-    await _openRelease(context, update.url);
+    await _downloadAndInstall(context, update.url);
+  }
+}
+
+Future<void> _downloadAndInstall(BuildContext context, String url) async {
+  if (!Platform.isAndroid) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('仅支持 Android 平台的原生安装')),
+    );
+    return;
+  }
+
+  final messenger = ScaffoldMessenger.of(context);
+  final uri = Uri.parse(url);
+  final fileName = 'videoapp-${DateTime.now().toIso8601String().substring(0, 10)}.apk';
+
+  // Download APK
+  messenger.showSnackBar(const SnackBar(content: Text('正在下载更新包...')));
+
+  try {
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('下载失败：${response.statusCode}')),
+      );
+      return;
+    }
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final apkFile = File('${appDir.path}/$fileName');
+    await apkFile.writeAsBytes(response.bodyBytes);
+
+    messenger.showSnackBar(const SnackBar(content: Text('下载完成，正在安装...')));
+
+    // Trigger installation via native code
+    await AppDevice.installApk(apkFile.path);
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('更新失败：$e')),
+    );
   }
 }
 
@@ -96,7 +137,9 @@ Future<_UpdateChoice?> _askUpdate(
     builder: (dialogContext) => AlertDialog(
       title: Text('发现新版本 ${update.version}'),
       content: Text(
-        manual ? '当前版本 $current。' : '当前版本 $current。选「不再提醒」后可在设置 › 关于中重新打开检查更新。',
+        manual
+            ? '当前版本 $current。'
+            : '当前版本 $current。选「不再提醒」后可在设置 › 关于中重新打开检查更新。',
       ),
       actions: [
         for (final (choice, label) in [
@@ -115,26 +158,11 @@ Future<_UpdateChoice?> _askUpdate(
           radius: 20,
           child: FilledButton(
             autofocus: true,
-            onPressed: () =>
-                Navigator.pop(dialogContext, _UpdateChoice.download),
+            onPressed: () => Navigator.pop(dialogContext, _UpdateChoice.download),
             child: const Text('更新'),
           ),
         ),
       ],
     ),
   );
-}
-
-Future<void> _openRelease(BuildContext context, String url) async {
-  final opened = await launchUrl(
-    Uri.parse(url),
-    mode: LaunchMode.externalApplication,
-  ).catchError((_) => false);
-  if (opened) return;
-  await Clipboard.setData(ClipboardData(text: url));
-  if (context.mounted) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('无法打开浏览器，链接已复制')));
-  }
 }

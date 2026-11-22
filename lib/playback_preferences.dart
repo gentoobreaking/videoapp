@@ -189,7 +189,6 @@ class PlaybackPreferences {
     bool? portraitStyleForWide,
     bool? autoPictureInPicture,
     VideoFit? videoFit,
-    bool? conservativeMode,
     int? bufferSize,
     int? cacheSize,
     int? networkTimeout,

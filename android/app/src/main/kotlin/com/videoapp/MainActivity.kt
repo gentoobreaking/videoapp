@@ -537,10 +537,40 @@ class MainActivity : FlutterActivity() {
                                 }.start()
                             }
                         }
+                        "installApk" -> {
+                            val apkPath = call.argument<String>("path")
+                            if (apkPath.isNullOrEmpty()) {
+                                result.error("invalid_arg", "缺少 APK 路径", null)
+                            } else {
+                                installApk(result, apkPath)
+                            }
+                        }
                         else -> result.notImplemented()
                     }
                 }
             }
+    }
+
+    private fun installApk(result: MethodChannel.Result, apkPath: String) {
+        try {
+            val file = File(apkPath)
+            if (!file.exists()) {
+                result.error("install_failed", "APK 文件不存在", null)
+                return
+            }
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    setDataAndType(FileProvider.getUriForFile(this@MainActivity, "${packageName}.provider", file), "application/vnd.android.package-archive")
+                } else {
+                    setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
+                }
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(intent)
+            result.success(null)
+        } catch (e: Exception) {
+            result.error("install_failed", "无法启动安装程序: ${e.message}", null)
+        }
     }
 
     /** 音频焦点变化通知 Dart：1=GAIN，-1=LOSS，-2=LOSS_TRANSIENT，-3=LOSS_TRANSIENT_CAN_DUCK。 */
