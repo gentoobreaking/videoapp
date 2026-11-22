@@ -2,6 +2,13 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.6+137
+
+### 更新内容
+
+- 修復按下「更新」下載失敗：checkUpdate 依設備 ABI（arm64-v8a/armeabi-v7a/x86_64）從 release assets 挑選正確 APK 下載網址，不再誤抓 Release 頁面（开发快照，需在对应平台实机测试）
+- 下載後驗證 APK 內容，非 APK 時明確提示，不再把 HTML 當安裝包
+
 ## 2.0.5+136
 
 ### 更新内容
