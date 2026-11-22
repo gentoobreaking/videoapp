@@ -971,7 +971,7 @@ class _BackupCardState extends State<_BackupCard> {
           title: '导出备份',
           subtitle: admin ? '包含本地用户、追剧、历史和设置，不含视频文件' : adminOnly,
           enabled: admin && !_busy,
-          onTap: () => _run(() => exportBackupFile(widget.store)),
+          onTap: () => _run(() => exportBackupFile(widget.store, context)),
         ),
         SettingsTile(
           title: '恢复备份',
