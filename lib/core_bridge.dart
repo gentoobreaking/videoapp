@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -570,13 +571,24 @@ class NativeRepository extends AppRepository {
 
   @override
   Future<AppUpdate?> checkUpdate(String version) async {
-    final result = await _call({'action': 'checkUpdate', 'version': version});
-    return result['available'] == true
-        ? AppUpdate(
-            version: result['version'] as String,
-            url: result['url'] as String,
-          )
-        : null;
+    final uri = Uri.parse(
+      'https://api.github.com/repos/gentoobreaking/videoapp/releases/latest',
+    );
+    final response = await http.get(
+      uri,
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'videoapp',
+      },
+    );
+    if (response.statusCode != 200) return null;
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final tagName =
+        (data['tag_name'] as String?)?.replaceFirst(RegExp('^v'), '');
+    final htmlUrl = data['html_url'] as String?;
+    if (tagName == null || tagName.isEmpty || htmlUrl == null) return null;
+    if (tagName == version) return null;
+    return AppUpdate(version: tagName, url: htmlUrl);
   }
 
   @override
