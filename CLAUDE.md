@@ -43,6 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Push 前需明確地回報執行過本地驗證結果，不可直接 push 而不回報驗證狀態。
 - **Push 到遠端前，務必先與使用者確認，取得同意後才能 push。** 不可自行決定 push，避免重複觸發 GitHub Actions CI workflow。
 - 推送到遠端前的完整操作順序（每一項都必須執行，不可跳過）：
+  0. 若要發布新版，遞增 `pubspec.yaml` 的版本號與構建號，並在 `CHANGELOG.md` 新增對應版本節。
   1. 執行 `dart format --output=none --set-exit-if-changed lib test`，確認格式正確。
   2. 執行 `dart analyze --fatal-infos lib test`，確認無錯誤。
   3. 執行 `flutter test --dart-define=DISABLE_REMOTE_IMAGES=true` 和 `flutter test --dart-define=DISABLE_REMOTE_IMAGES=true --dart-define=ONLY_HONGGUO=true`，確認所有測試通過。
