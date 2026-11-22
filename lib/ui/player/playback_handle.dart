@@ -6,9 +6,9 @@ import '../../local_store.dart';
 import '../../models.dart';
 import '../../playback_session.dart';
 
-Player _player() => Player(
-  configuration: const PlayerConfiguration(
-    bufferSize: 64 * 1024 * 1024,
+Player _player({required int bufferSize}) => Player(
+  configuration: PlayerConfiguration(
+    bufferSize: bufferSize * 1024 * 1024,
     logLevel: MPVLogLevel.warn,
   ),
 );
@@ -23,8 +23,9 @@ class PlaybackHandle {
     bool autoplay = true,
     bool preopen = true,
   }) {
-    final main = _player();
-    final standby = preopen ? _player() : null;
+    final bufferSize = store.playbackPreferences.bufferSize;
+    final main = _player(bufferSize: bufferSize);
+    final standby = preopen ? _player(bufferSize: bufferSize) : null;
     _videos[main] = VideoController(main);
     if (standby != null) _videos[standby] = VideoController(standby);
     session = PlaybackSession(
