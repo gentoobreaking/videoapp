@@ -118,6 +118,7 @@ class PlaybackPreferences {
     this.highQualityScaling = true,
     this.deinterlace = true,
     this.sharpenDenoise = true,
+    this.outputSizeDebounce = 100,
   });
 
   final double speed;
@@ -163,6 +164,7 @@ class PlaybackPreferences {
   final bool highQualityScaling;
   final bool deinterlace;
   final bool sharpenDenoise;
+  final int outputSizeDebounce;
 
   bool preopens({required bool television}) => preopen ?? !television;
 
@@ -207,6 +209,7 @@ class PlaybackPreferences {
     bool? highQualityScaling,
     bool? deinterlace,
     bool? sharpenDenoise,
+    int? outputSizeDebounce,
   }) => PlaybackPreferences(
     speed: speed ?? this.speed,
     quality: quality ?? this.quality,
@@ -248,6 +251,7 @@ class PlaybackPreferences {
     highQualityScaling: highQualityScaling ?? this.highQualityScaling,
     deinterlace: deinterlace ?? this.deinterlace,
     sharpenDenoise: sharpenDenoise ?? this.sharpenDenoise,
+    outputSizeDebounce: outputSizeDebounce ?? this.outputSizeDebounce,
   );
 
   Map<String, dynamic> toJson() => {
@@ -291,6 +295,7 @@ class PlaybackPreferences {
     'highQualityScaling': highQualityScaling,
     'deinterlace': deinterlace,
     'sharpenDenoise': sharpenDenoise,
+    'outputSizeDebounce': outputSizeDebounce,
   };
 
   factory PlaybackPreferences.fromJson(Map<String, dynamic> value) {
@@ -366,6 +371,7 @@ class PlaybackPreferences {
       highQualityScaling: value['highQualityScaling'] as bool? ?? true,
       deinterlace: value['deinterlace'] as bool? ?? true,
       sharpenDenoise: value['sharpenDenoise'] as bool? ?? true,
+      outputSizeDebounce: (value['outputSizeDebounce'] as num? ?? 100).toInt(),
     );
   }
 }
