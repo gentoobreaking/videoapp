@@ -109,6 +109,16 @@ class PlaybackPreferences {
     this.autoPictureInPicture = false,
     this.videoFit = VideoFit.auto,
     this.conservativeMode = false,
+    this.bufferSize = 64,
+    this.cacheSize = 100,
+    this.networkTimeout = 30,
+    this.decoderThreads = 0,
+    this.colormatrix = 'auto',
+    this.tonemapping = true,
+    this.highQualityScaling = true,
+    this.deinterlace = true,
+    this.sharpenDenoise = true,
+    this.outputSizeDebounce = 100,
   });
 
   final double speed;
@@ -145,6 +155,16 @@ class PlaybackPreferences {
   final bool autoPictureInPicture;
   final VideoFit videoFit;
   final bool conservativeMode;
+  final int bufferSize;
+  final int cacheSize;
+  final int networkTimeout;
+  final int decoderThreads;
+  final String colormatrix;
+  final bool tonemapping;
+  final bool highQualityScaling;
+  final bool deinterlace;
+  final bool sharpenDenoise;
+  final int outputSizeDebounce;
 
   bool preopens({required bool television}) => preopen ?? !television;
 
@@ -180,6 +200,16 @@ class PlaybackPreferences {
     bool? autoPictureInPicture,
     VideoFit? videoFit,
     bool? conservativeMode,
+    int? bufferSize,
+    int? cacheSize,
+    int? networkTimeout,
+    int? decoderThreads,
+    String? colormatrix,
+    bool? tonemapping,
+    bool? highQualityScaling,
+    bool? deinterlace,
+    bool? sharpenDenoise,
+    int? outputSizeDebounce,
   }) => PlaybackPreferences(
     speed: speed ?? this.speed,
     quality: quality ?? this.quality,
@@ -212,6 +242,16 @@ class PlaybackPreferences {
     autoPictureInPicture: autoPictureInPicture ?? this.autoPictureInPicture,
     videoFit: videoFit ?? this.videoFit,
     conservativeMode: conservativeMode ?? this.conservativeMode,
+    bufferSize: bufferSize ?? this.bufferSize,
+    cacheSize: cacheSize ?? this.cacheSize,
+    networkTimeout: networkTimeout ?? this.networkTimeout,
+    decoderThreads: decoderThreads ?? this.decoderThreads,
+    colormatrix: colormatrix ?? this.colormatrix,
+    tonemapping: tonemapping ?? this.tonemapping,
+    highQualityScaling: highQualityScaling ?? this.highQualityScaling,
+    deinterlace: deinterlace ?? this.deinterlace,
+    sharpenDenoise: sharpenDenoise ?? this.sharpenDenoise,
+    outputSizeDebounce: outputSizeDebounce ?? this.outputSizeDebounce,
   );
 
   Map<String, dynamic> toJson() => {
@@ -246,6 +286,16 @@ class PlaybackPreferences {
     'autoPictureInPicture': autoPictureInPicture,
     'videoFit': videoFit.name,
     'conservativeMode': conservativeMode,
+    'bufferSize': bufferSize,
+    'cacheSize': cacheSize,
+    'networkTimeout': networkTimeout,
+    'decoderThreads': decoderThreads,
+    'colormatrix': colormatrix,
+    'tonemapping': tonemapping,
+    'highQualityScaling': highQualityScaling,
+    'deinterlace': deinterlace,
+    'sharpenDenoise': sharpenDenoise,
+    'outputSizeDebounce': outputSizeDebounce,
   };
 
   factory PlaybackPreferences.fromJson(Map<String, dynamic> value) {
@@ -312,6 +362,16 @@ class PlaybackPreferences {
       autoPictureInPicture: value['autoPictureInPicture'] as bool? ?? false,
       videoFit: VideoFit.values.asNameMap()[value['videoFit']] ?? VideoFit.auto,
       conservativeMode: value['conservativeMode'] as bool? ?? false,
+      bufferSize: (value['bufferSize'] as num? ?? 64).toInt(),
+      cacheSize: (value['cacheSize'] as num? ?? 100).toInt(),
+      networkTimeout: (value['networkTimeout'] as num? ?? 30).toInt(),
+      decoderThreads: (value['decoderThreads'] as num? ?? 0).toInt(),
+      colormatrix: value['colormatrix'] as String? ?? 'auto',
+      tonemapping: value['tonemapping'] as bool? ?? true,
+      highQualityScaling: value['highQualityScaling'] as bool? ?? true,
+      deinterlace: value['deinterlace'] as bool? ?? true,
+      sharpenDenoise: value['sharpenDenoise'] as bool? ?? true,
+      outputSizeDebounce: (value['outputSizeDebounce'] as num? ?? 100).toInt(),
     );
   }
 }
