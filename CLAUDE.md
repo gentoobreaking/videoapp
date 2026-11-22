@@ -13,6 +13,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 不为UI类内容编写单元测试，直接叫用户打开实际界面查看。
 - 合并外部 PR 时，先用 `git merge --no-ff` 把 PR 原提交原样合进本地 `main`，合并提交只解决冲突（如 `CHANGELOG.md` 同版本标题去重），不改 PR 内容；需要的修订另起提交。不用 cherry-pick、squash 或 amend PR 提交，保证推送后 GitHub 将 PR 显示为 Merged。
 
+## 本地驗證流程
+
+推送前請依序執行以下檢查，確保 GitHub Actions Checks 工作能通過：
+
+1. 格式檢查
+   ```
+   dart format --output=none --set-exit-if-changed lib test
+   ```
+
+2. 靜態分析（CI 用 `--fatal-infos`，將 info 當錯誤處理）
+   ```
+   dart analyze --fatal-infos lib test
+   ```
+
+3. 單元測試（兩種定義都需執行）
+   ```
+   flutter test --dart-define=DISABLE_REMOTE_IMAGES=true
+   flutter test --dart-define=DISABLE_REMOTE_IMAGES=true --dart-define=ONLY_HONGGUO=true
+   ```
+
+4. Android APK 編譯（驗證原生層，可選）
+   ```
+   flutter build apk --debug
+   ```
+
+以上四項皆通過後，CI 的 Checks 工作大機率能通過。剩下的失敗通常是 GitHub Actions Runner 環境差異或 gosec 安全掃描問題，需看 GitHub Actions 的具體錯誤訊息再處理。
+
+
 ## 站源
 
 本体不内置站源，站源是运行时加载的 JS 模块（`native/core/module_*.go`，示例 `native/module_example`）。官方站源正从私有仓库 `guoapp-sources`（本机 `../guoapp-sources`）里的 Go 代码改写成 JS 模块，改写后的模块放在同级文件夹 `../guoapp-modules/<标识>/`（那里有自己的 `CLAUDE.md`）；`guoapp-sources` 只读、只作对照，不要改动，也不再编译。探测脚本 skill `masked-probe` 在 `guoapp-sources` 的 `.claude/skills/` 里。其中的硬性规定在此重申：允许直接访问的站源只有 `红果` `韩小圈` `鬼片` `青空`，其他站点（包括新增）不得以任何形式直接访问，也不得编写或运行会输出站点内容的测试，需要真实数据时写脚本交给用户在会话外运行。
