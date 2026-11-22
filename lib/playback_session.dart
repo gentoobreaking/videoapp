@@ -675,6 +675,10 @@ class PlaybackSession extends ChangeNotifier {
     await platform.setProperty('dscale', 'mitchell');
     await platform.setProperty('deinterlace', 'yes');
 
+    // 低畫質來源觀感：輕微銳化與降噪，採保守值避免過度改變畫面。
+    await platform.setProperty('sharpen', '0.5');
+    await platform.setProperty('denoise', '0.5');
+
     await platform.setProperty(
       'demuxer-lavf-o',
       [
