@@ -211,6 +211,7 @@ class PlaybackSession extends ChangeNotifier {
   bool _switching = false;
   double _resumePosition = 0;
   double _unmutedVolume = 100;
+  PlaybackPreferences? _lastPrefs;
 
   Player get player => _player;
 
@@ -1039,9 +1040,24 @@ class PlaybackSession extends ChangeNotifier {
     if (!_usable) return;
     final wasEngaged = _engaged;
     _engaged = true;
+    final prefs = store.playbackPreferences;
+    final lastPrefs = _lastPrefs;
+    final prefsChanged = lastPrefs != null &&
+        (lastPrefs.bufferSize != prefs.bufferSize ||
+            lastPrefs.cacheSize != prefs.cacheSize ||
+            lastPrefs.networkTimeout != prefs.networkTimeout ||
+            lastPrefs.decoderThreads != prefs.decoderThreads ||
+            lastPrefs.colormatrix != prefs.colormatrix ||
+            lastPrefs.tonemapping != prefs.tonemapping ||
+            lastPrefs.highQualityScaling != prefs.highQualityScaling ||
+            lastPrefs.deinterlace != prefs.deinterlace ||
+            lastPrefs.sharpenDenoise != prefs.sharpenDenoise ||
+            lastPrefs.videoFit != prefs.videoFit ||
+            lastPrefs.outputSizeDebounce != prefs.outputSizeDebounce);
     if (index != _index ||
         (position - _openedAt).abs() > .5 ||
-        _error != null) {
+        _error != null ||
+        prefsChanged) {
       unawaited(play(index, position: position));
       return;
     }
@@ -1050,6 +1066,7 @@ class PlaybackSession extends ChangeNotifier {
     if (!wasEngaged) unawaited(_limitCache(player, false));
     unawaited(AppDevice.requestAudioFocus());
     if (ready) unawaited(player.play());
+    _lastPrefs = prefs;
   }
 
   Future<void> retry() =>
