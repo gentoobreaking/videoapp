@@ -2,6 +2,12 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.2+132
+
+### 更新内容
+
+- 播放器移除 tonemapping、highQualityScaling、deinterlace 三個 mpv 原生屬性，簡化播放器設定介面（开发快照，需在对应平台实机测试）
+
 ## 2.0.2+131
 
 ### 更新内容
