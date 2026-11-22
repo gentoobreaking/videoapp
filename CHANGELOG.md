@@ -2,6 +2,13 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.2+126
+
+### 更新内容
+
+- 播放器緩衝大小 bufferSize、網路快取大小 cacheSize、網路超時時間 networkTimeout、解碼執行緒數 decoderThreads、色彩空間 colormatrix、HDR 色調映射 tonemapping、高品質縮放濾鏡 highQualityScaling、隔行處理 deinterlace、銳化與降噪 sharpenDenoise、輸出尺寸 debounce outputSizeDebounce 全部改為可在設定介面調整，不再硬編碼（开发快照，需在对应平台实机测试）
+- 設定介面新增「播放器進階」區塊，包含上述所有播放器進階參數（开发快照，需在对应平台实机测試）
+
 ## 2.0.2+125
 
 ### 更新内容
