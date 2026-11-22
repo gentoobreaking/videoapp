@@ -67,6 +67,11 @@ const _decoders = {
   TelevisionDecoder.hardware: '硬解（兼容）',
   TelevisionDecoder.software: '软解（兼容）',
 };
+const _bufferSizes = {32: '32 MB', 64: '64 MB', 128: '128 MB', 256: '256 MB'};
+const _cacheSizes = {64: '64 MB', 100: '100 MB', 200: '200 MB', 400: '400 MB'};
+const _networkTimeouts = {10: '10 秒', 20: '20 秒', 30: '30 秒', 60: '60 秒'};
+const _decoderThreads = {0: '自動', 1: '1 執行緒', 2: '2 執行緒', 4: '4 執行緒', 8: '8 執行緒'};
+const _colormatrixs = {'auto': '自動', 'bt601': 'BT.601', 'bt709': 'BT.709', 'bt2020': 'BT.2020'};
 const _links = [
   [
     ('GitHub · 重建版', String.fromEnvironment('PROJECT_URL')),
@@ -348,6 +353,78 @@ class SettingsSection extends StatelessWidget {
             ),
           ],
         ),
+      SettingsCard(
+        children: [
+          ValueTile<int>(
+            title: '播放器緩衝大小',
+            subtitle: '播放器緩衝池大小，越大啟動越穩定，佔用記憶體越多',
+            options: _bufferSizes,
+            value: preferences.bufferSize,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(bufferSize: value)),
+          ),
+          ValueTile<int>(
+            title: '網路快取大小',
+            subtitle: '網路串流快取大小，越大越不易卡斷，佔用記憶體越多',
+            options: _cacheSizes,
+            value: preferences.cacheSize,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(cacheSize: value)),
+          ),
+          ValueTile<int>(
+            title: '網路超時時間',
+            subtitle: '解析播放地址時的等待超時秒數',
+            options: _networkTimeouts,
+            value: preferences.networkTimeout,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(networkTimeout: value)),
+          ),
+          ValueTile<int>(
+            title: '解碼執行緒數',
+            subtitle: '0 為自動，適合多核裝置提升解碼效率',
+            options: _decoderThreads,
+            value: preferences.decoderThreads,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(decoderThreads: value)),
+          ),
+          ValueTile<String>(
+            title: '色彩空間',
+            subtitle: '影片色彩空間解碼標準，自動通常即可',
+            options: _colormatrixs,
+            value: preferences.colormatrix,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(colormatrix: value)),
+          ),
+          SwitchTile(
+            title: 'HDR 色調映射',
+            subtitle: '開啟後可改善 HDR 影片色彩，較耗 GPU 效能',
+            value: preferences.tonemapping,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(tonemapping: value)),
+          ),
+          SwitchTile(
+            title: '高品質縮放濾鏡',
+            subtitle: '使用 spline36 縮放濾鏡，畫質較佳但較耗效能',
+            value: preferences.highQualityScaling,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(highQualityScaling: value)),
+          ),
+          SwitchTile(
+            title: '隔行處理',
+            subtitle: '針對隔行源影片進行處理，較舊影片可開啟',
+            value: preferences.deinterlace,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(deinterlace: value)),
+          ),
+          SwitchTile(
+            title: '銳化與降噪',
+            subtitle: '輕微銳化與降噪，改善低畫質來源觀感，較耗效能',
+            value: preferences.sharpenDenoise,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(sharpenDenoise: value)),
+          ),
+        ],
+      ),
       if (Platform.isAndroid && !television)
         SettingsCard(
           children: [
