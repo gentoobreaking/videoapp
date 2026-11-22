@@ -111,14 +111,22 @@ class PlaybackPreferences {
     this.conservativeMode = false,
     this.bufferSize = 64,
     this.cacheSize = 100,
-    this.networkTimeout = 30,
+    this.networkTimeout = 20,
     this.decoderThreads = 0,
     this.colormatrix = 'auto',
-    this.tonemapping = true,
-    this.highQualityScaling = true,
-    this.deinterlace = true,
-    this.sharpenDenoise = true,
+    this.tonemapping = false,
+    this.highQualityScaling = false,
+    this.deinterlace = false,
+    this.sharpenDenoise = false,
     this.outputSizeDebounce = 100,
+    this.enableMpvCache = false,
+    this.enableMpvNetworkTimeout = false,
+    this.enableMpvDecoderThreads = false,
+    this.enableMpvColormatrix = false,
+    this.enableMpvTonemapping = false,
+    this.enableMpvHighQualityScaling = false,
+    this.enableMpvDeinterlace = false,
+    this.enableMpvSharpenDenoise = false,
   });
 
   final double speed;
@@ -165,6 +173,14 @@ class PlaybackPreferences {
   final bool deinterlace;
   final bool sharpenDenoise;
   final int outputSizeDebounce;
+  final bool enableMpvCache;
+  final bool enableMpvNetworkTimeout;
+  final bool enableMpvDecoderThreads;
+  final bool enableMpvColormatrix;
+  final bool enableMpvTonemapping;
+  final bool enableMpvHighQualityScaling;
+  final bool enableMpvDeinterlace;
+  final bool enableMpvSharpenDenoise;
 
   bool preopens({required bool television}) => preopen ?? !television;
 
@@ -210,6 +226,14 @@ class PlaybackPreferences {
     bool? deinterlace,
     bool? sharpenDenoise,
     int? outputSizeDebounce,
+    bool? enableMpvCache,
+    bool? enableMpvNetworkTimeout,
+    bool? enableMpvDecoderThreads,
+    bool? enableMpvColormatrix,
+    bool? enableMpvTonemapping,
+    bool? enableMpvHighQualityScaling,
+    bool? enableMpvDeinterlace,
+    bool? enableMpvSharpenDenoise,
   }) => PlaybackPreferences(
     speed: speed ?? this.speed,
     quality: quality ?? this.quality,
@@ -252,6 +276,14 @@ class PlaybackPreferences {
     deinterlace: deinterlace ?? this.deinterlace,
     sharpenDenoise: sharpenDenoise ?? this.sharpenDenoise,
     outputSizeDebounce: outputSizeDebounce ?? this.outputSizeDebounce,
+    enableMpvCache: enableMpvCache ?? this.enableMpvCache,
+    enableMpvNetworkTimeout: enableMpvNetworkTimeout ?? this.enableMpvNetworkTimeout,
+    enableMpvDecoderThreads: enableMpvDecoderThreads ?? this.enableMpvDecoderThreads,
+    enableMpvColormatrix: enableMpvColormatrix ?? this.enableMpvColormatrix,
+    enableMpvTonemapping: enableMpvTonemapping ?? this.enableMpvTonemapping,
+    enableMpvHighQualityScaling: enableMpvHighQualityScaling ?? this.enableMpvHighQualityScaling,
+    enableMpvDeinterlace: enableMpvDeinterlace ?? this.enableMpvDeinterlace,
+    enableMpvSharpenDenoise: enableMpvSharpenDenoise ?? this.enableMpvSharpenDenoise,
   );
 
   Map<String, dynamic> toJson() => {
@@ -296,6 +328,14 @@ class PlaybackPreferences {
     'deinterlace': deinterlace,
     'sharpenDenoise': sharpenDenoise,
     'outputSizeDebounce': outputSizeDebounce,
+    'enableMpvCache': enableMpvCache,
+    'enableMpvNetworkTimeout': enableMpvNetworkTimeout,
+    'enableMpvDecoderThreads': enableMpvDecoderThreads,
+    'enableMpvColormatrix': enableMpvColormatrix,
+    'enableMpvTonemapping': enableMpvTonemapping,
+    'enableMpvHighQualityScaling': enableMpvHighQualityScaling,
+    'enableMpvDeinterlace': enableMpvDeinterlace,
+    'enableMpvSharpenDenoise': enableMpvSharpenDenoise,
   };
 
   factory PlaybackPreferences.fromJson(Map<String, dynamic> value) {
@@ -372,6 +412,14 @@ class PlaybackPreferences {
       deinterlace: value['deinterlace'] as bool? ?? true,
       sharpenDenoise: value['sharpenDenoise'] as bool? ?? true,
       outputSizeDebounce: (value['outputSizeDebounce'] as num? ?? 100).toInt(),
+      enableMpvCache: value['enableMpvCache'] as bool? ?? false,
+      enableMpvNetworkTimeout: value['enableMpvNetworkTimeout'] as bool? ?? false,
+      enableMpvDecoderThreads: value['enableMpvDecoderThreads'] as bool? ?? false,
+      enableMpvColormatrix: value['enableMpvColormatrix'] as bool? ?? false,
+      enableMpvTonemapping: value['enableMpvTonemapping'] as bool? ?? false,
+      enableMpvHighQualityScaling: value['enableMpvHighQualityScaling'] as bool? ?? false,
+      enableMpvDeinterlace: value['enableMpvDeinterlace'] as bool? ?? false,
+      enableMpvSharpenDenoise: value['enableMpvSharpenDenoise'] as bool? ?? false,
     );
   }
 }
