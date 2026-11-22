@@ -83,6 +83,7 @@ class PlaybackSession extends ChangeNotifier {
       }
     });
     unawaited(play(index, position: position, playWhenReady: autoplay));
+    _lastPrefs = store.playbackPreferences;
   }
 
   void _bind() {
@@ -680,23 +681,10 @@ class PlaybackSession extends ChangeNotifier {
       await platform.setProperty('framedrop', 'vo');
     }
 
-    // 畫質與色彩：色彩空間自動、HDR 色調映射、高品質縮放濾鏡、隔行處理。
+    // 畫質與色彩：色彩空間自動。
     // 僅在啟用進階播放器優化時套用。
     if (prefs.enableMpvAdvanced) {
       await platform.setProperty('colormatrix', prefs.colormatrix);
-      if (prefs.tonemapping) {
-        await platform.setProperty('tonemapping', 'generic');
-      }
-      if (prefs.highQualityScaling) {
-        await platform.setProperty('scale', 'spline36');
-        await platform.setProperty('cscale', 'spline36');
-        await platform.setProperty('dscale', 'mitchell');
-      }
-      if (prefs.deinterlace) {
-        await platform.setProperty('deinterlace', 'yes');
-      }
-
-      // 低畫質來源觀感：輕微銳化與降噪，採保守值避免過度改變畫面。
       if (prefs.sharpenDenoise) {
         await platform.setProperty('sharpen', '0.5');
         await platform.setProperty('denoise', '0.5');
@@ -1042,15 +1030,12 @@ class PlaybackSession extends ChangeNotifier {
     final prefs = store.playbackPreferences;
     final lastPrefs = _lastPrefs;
     final prefsChanged =
-        lastPrefs != null &&
+        lastPrefs == null ||
         (lastPrefs.bufferSize != prefs.bufferSize ||
             lastPrefs.cacheSize != prefs.cacheSize ||
             lastPrefs.networkTimeout != prefs.networkTimeout ||
             lastPrefs.decoderThreads != prefs.decoderThreads ||
             lastPrefs.colormatrix != prefs.colormatrix ||
-            lastPrefs.tonemapping != prefs.tonemapping ||
-            lastPrefs.highQualityScaling != prefs.highQualityScaling ||
-            lastPrefs.deinterlace != prefs.deinterlace ||
             lastPrefs.sharpenDenoise != prefs.sharpenDenoise ||
             lastPrefs.videoFit != prefs.videoFit ||
             lastPrefs.outputSizeDebounce != prefs.outputSizeDebounce);

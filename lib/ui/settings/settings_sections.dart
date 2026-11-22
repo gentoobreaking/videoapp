@@ -421,28 +421,6 @@ class SettingsSection extends StatelessWidget {
                   savePreferences(preferences.copyWith(colormatrix: value)),
             ),
             SwitchTile(
-              title: 'HDR 色調映射',
-              subtitle: '開啟後可改善 HDR 影片色彩，較耗 GPU 效能',
-              value: preferences.tonemapping,
-              onChanged: (value) =>
-                  savePreferences(preferences.copyWith(tonemapping: value)),
-            ),
-            SwitchTile(
-              title: '高品質縮放濾鏡',
-              subtitle: '使用 spline36 縮放濾鏡，畫質較佳但較耗效能',
-              value: preferences.highQualityScaling,
-              onChanged: (value) => savePreferences(
-                preferences.copyWith(highQualityScaling: value),
-              ),
-            ),
-            SwitchTile(
-              title: '隔行處理',
-              subtitle: '針對隔行源影片進行處理，較舊影片可開啟',
-              value: preferences.deinterlace,
-              onChanged: (value) =>
-                  savePreferences(preferences.copyWith(deinterlace: value)),
-            ),
-            SwitchTile(
               title: '銳化與降噪',
               subtitle: '輕微銳化與降噪，改善低畫質來源觀感，較耗效能',
               value: preferences.sharpenDenoise,

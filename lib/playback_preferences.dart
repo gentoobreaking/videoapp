@@ -114,9 +114,6 @@ class PlaybackPreferences {
     this.networkTimeout = 20,
     this.decoderThreads = 0,
     this.colormatrix = 'auto',
-    this.tonemapping = false,
-    this.highQualityScaling = false,
-    this.deinterlace = false,
     this.sharpenDenoise = false,
     this.outputSizeDebounce = 100,
     this.enableMpvAdvanced = false,
@@ -161,9 +158,6 @@ class PlaybackPreferences {
   final int networkTimeout;
   final int decoderThreads;
   final String colormatrix;
-  final bool tonemapping;
-  final bool highQualityScaling;
-  final bool deinterlace;
   final bool sharpenDenoise;
   final int outputSizeDebounce;
   final bool enableMpvAdvanced;
@@ -207,9 +201,6 @@ class PlaybackPreferences {
     int? networkTimeout,
     int? decoderThreads,
     String? colormatrix,
-    bool? tonemapping,
-    bool? highQualityScaling,
-    bool? deinterlace,
     bool? sharpenDenoise,
     int? outputSizeDebounce,
     bool? enableMpvAdvanced,
@@ -250,9 +241,6 @@ class PlaybackPreferences {
     networkTimeout: networkTimeout ?? this.networkTimeout,
     decoderThreads: decoderThreads ?? this.decoderThreads,
     colormatrix: colormatrix ?? this.colormatrix,
-    tonemapping: tonemapping ?? this.tonemapping,
-    highQualityScaling: highQualityScaling ?? this.highQualityScaling,
-    deinterlace: deinterlace ?? this.deinterlace,
     sharpenDenoise: sharpenDenoise ?? this.sharpenDenoise,
     outputSizeDebounce: outputSizeDebounce ?? this.outputSizeDebounce,
     enableMpvAdvanced: enableMpvAdvanced ?? this.enableMpvAdvanced,
@@ -295,9 +283,6 @@ class PlaybackPreferences {
     'networkTimeout': networkTimeout,
     'decoderThreads': decoderThreads,
     'colormatrix': colormatrix,
-    'tonemapping': tonemapping,
-    'highQualityScaling': highQualityScaling,
-    'deinterlace': deinterlace,
     'sharpenDenoise': sharpenDenoise,
     'outputSizeDebounce': outputSizeDebounce,
     'enableMpvAdvanced': enableMpvAdvanced,
@@ -372,9 +357,6 @@ class PlaybackPreferences {
       networkTimeout: (value['networkTimeout'] as num? ?? 20).toInt(),
       decoderThreads: (value['decoderThreads'] as num? ?? 0).toInt(),
       colormatrix: value['colormatrix'] as String? ?? 'auto',
-      tonemapping: value['tonemapping'] as bool? ?? false,
-      highQualityScaling: value['highQualityScaling'] as bool? ?? false,
-      deinterlace: value['deinterlace'] as bool? ?? false,
       sharpenDenoise: value['sharpenDenoise'] as bool? ?? false,
       outputSizeDebounce: (value['outputSizeDebounce'] as num? ?? 100).toInt(),
       enableMpvAdvanced: value['enableMpvAdvanced'] as bool? ?? false,
