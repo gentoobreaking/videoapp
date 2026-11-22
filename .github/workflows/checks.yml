@@ -17,16 +17,34 @@ env:
   GOSUMDB: sum.golang.org
 
 jobs:
-  checks:
+  # 檢查哪些目錄有變動
+  check-changes:
     runs-on: ubuntu-latest
+    outputs:
+      dart: ${{ steps.filter.outputs.dart }}
+      go: ${{ steps.filter.outputs.go }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            dart:
+              - 'lib/**/*.dart'
+              - 'test/**/*.dart'
+            go:
+              - 'native/**/*.go'
+              - 'native/go.mod'
+              - 'native/go.sum'
+
+  # Dart 層檢查：只有 lib/ 或 test/ 有變動時才執行
+  dart-checks:
+    runs-on: ubuntu-latest
+    needs: check-changes
+    if: needs.check-changes.outputs.dart == 'true'
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Setup Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
-        with:
-          go-version-file: native/go.mod
-          cache-dependency-path: native/go.sum
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
@@ -38,8 +56,36 @@ jobs:
       - run: dart analyze --fatal-infos lib test
       - run: flutter test --dart-define=DISABLE_REMOTE_IMAGES=true
       - run: flutter test --dart-define=DISABLE_REMOTE_IMAGES=true --dart-define=ONLY_HONGGUO=true
+
+  # Go 單元測試：只有 native/ 有變動時才執行
+  go-test:
+    runs-on: ubuntu-latest
+    needs: check-changes
+    if: needs.check-changes.outputs.go == 'true'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Setup Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version-file: native/go.mod
+          cache-dependency-path: native/go.sum
       - run: go test -race ./...
         working-directory: native
+
+  # Go 安全掃描：只有 native/ 有變動時才執行
+  gosec:
+    runs-on: ubuntu-latest
+    needs: check-changes
+    if: needs.check-changes.outputs.go == 'true'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Setup Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version-file: native/go.mod
+          cache-dependency-path: native/go.sum
       - name: Run gosec security scan
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
