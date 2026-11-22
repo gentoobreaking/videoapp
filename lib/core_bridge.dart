@@ -591,7 +591,9 @@ class NativeRepository extends AppRepository {
     );
     final htmlUrl = data['html_url'] as String?;
     if (tagName == null || tagName.isEmpty || htmlUrl == null) return null;
-    if (tagName == version) return null;
+    // Strip build number (+N) for comparison; currentAppVersion() returns "X.Y.Z+N"
+    final currentVersion = version.split('+').first;
+    if (tagName == currentVersion) return null;
     return AppUpdate(version: tagName, url: htmlUrl);
   }
 
