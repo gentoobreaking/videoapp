@@ -2,6 +2,12 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.2+125
+
+### 更新内容
+
+- 版本檢查改用 GitHub REST API（`/repos/gentoobreaking/videoapp/releases/latest`），不再依賴原生 Go 層，不要求終端用戶輸入 GitHub Token（开发快照，需在对应平台实机测试）
+
 ## 2.0.2+124
 
 ### 更新内容
