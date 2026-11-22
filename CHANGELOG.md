@@ -2,6 +2,17 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.2+124
+
+### 更新内容
+
+- 播放器 Player bufferSize 32MB 增至 64MB，logLevel 由 error 改为 warn（开发快照，需在对应平台实机测试）
+- 视频输出尺寸 debounce 由 300ms 缩短至 100ms，降低全屏/窗口切换时画面错位延迟（开发快照，需在对应平台实机测试）
+- 播放器 _configure 补充 mpv cache、网络超时、解码线程、色彩空间与缩放滤镜属性（开发快照，需在对应平台实机测试）
+- 默认预载数量 preloadCount 由 1 增至 2，缩短换集等待时间（开发快照，需在对应平台实机测试）
+- 硬件解码选取零拷贝解码器（Android mediacodec、iOS/Mac videotoolbox、Windows d3d11va），保留 optimized 为 -copy 行为（开发快照，需在对应平台实机测试）
+- 播放器新增 sharpen 与 denoise mpv 属性，改善低画质来源观感（开发快照，需在对应平台实机测试）
+
 ## 2.0.2+123
 
 ### 更新内容
