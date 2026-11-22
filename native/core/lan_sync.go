@@ -51,6 +51,7 @@ type lanSyncInfo struct {
 // lanSync 本機 LAN 同步伺服器與發現客戶端。
 type lanSync struct {
 	mu         sync.Mutex
+	wg         sync.WaitGroup
 	devices    map[string]*lanSyncDevice
 	httpServer *http.Server
 	httpPort   int
@@ -102,7 +103,9 @@ func (ls *lanSync) start() error {
 		MaxHeaderBytes:    16384,
 	}
 	server := ls.httpServer
+	ls.wg.Add(1)
 	go func() {
+		defer ls.wg.Done()
 		defer guardBackground(ls.engine.downloader, "lan.http")
 		_ = server.Serve(listener)
 	}()
@@ -131,6 +134,8 @@ func (ls *lanSync) stop() {
 	if server != nil {
 		_ = server.Close()
 	}
+
+	ls.wg.Wait()
 }
 
 // startDiscovery 啟動 UDP 廣播監聽與定期廣播。
@@ -148,7 +153,9 @@ func (ls *lanSync) startDiscovery() error {
 	discovery := &lanDiscovery{conn: conn, running: true}
 	ls.discovery = discovery
 
+	ls.wg.Add(1)
 	go func() {
+		defer ls.wg.Done()
 		defer guardBackground(ls.engine.downloader, "lan.discovery")
 		defer conn.Close()
 		buffer := make([]byte, 64*1024)
@@ -165,7 +172,9 @@ func (ls *lanSync) startDiscovery() error {
 		}
 	}()
 
+	ls.wg.Add(1)
 	go func() {
+		defer ls.wg.Done()
 		defer guardBackground(ls.engine.downloader, "lan.broadcast")
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
