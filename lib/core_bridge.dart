@@ -593,12 +593,12 @@ class NativeRepository extends AppRepository {
     if (tagName == null || tagName.isEmpty || htmlUrl == null) return null;
     // 提取語義版本 (X.Y.Z) 進行比對
     // tag 格式：app-v2.0.4-135-android；currentAppVersion() 回傳：2.0.4+135
-    final tagSemanticVersion = RegExp(r'\d+\.\d+\.\d+').firstMatch(
-      tagName,
-    )?.group(0);
-    final currentSemanticVersion = RegExp(r'\d+\.\d+\.\d+').firstMatch(
-      version,
-    )?.group(0);
+    final tagSemanticVersion = RegExp(
+      r'\d+\.\d+\.\d+',
+    ).firstMatch(tagName)?.group(0);
+    final currentSemanticVersion = RegExp(
+      r'\d+\.\d+\.\d+',
+    ).firstMatch(version)?.group(0);
     if (tagSemanticVersion == null || tagSemanticVersion.isEmpty) return null;
     if (tagSemanticVersion == currentSemanticVersion) return null;
     return AppUpdate(version: tagName, url: htmlUrl);
