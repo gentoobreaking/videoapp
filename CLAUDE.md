@@ -40,6 +40,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 以上四項皆通過後，CI 的 Checks 工作大機率能通過。剩下的失敗通常是 GitHub Actions Runner 環境差異或 gosec 安全掃描問題，需看 GitHub Actions 的具體錯誤訊息再處理。
 
+- Push 前需明確地回報執行過本地驗證結果，不可直接 push 而不回報驗證狀態。
 
 ## 站源
 
