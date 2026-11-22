@@ -218,7 +218,7 @@ void main() {
     session.beginBoost();
     await Future<void>.delayed(const Duration(milliseconds: 400));
     expect(session.boosting, isTrue);
-    expect(player.rates.last, 2);
+    expect(player.rates.last, 4);
     expect(session.endBoost(), isTrue);
     await pumpEventQueue();
     expect(player.rates.last, 1.5);
@@ -401,14 +401,14 @@ void main() {
 
     session.setBoostLocked(true);
     await pumpEventQueue();
-    expect(player.rates.last, 2);
+    expect(player.rates.last, 4);
 
     session.togglePlayback();
     await pumpEventQueue();
     expect(session.boosting, isTrue);
 
     await session.play(1);
-    expect(player.rates.last, 2);
+    expect(player.rates.last, 4);
     expect(session.boostLocked, isTrue);
 
     session.setBoostLocked(false);
@@ -424,18 +424,18 @@ void main() {
 
     session.holdBoost();
     await pumpEventQueue();
-    expect(player.rates.last, 2);
+    expect(player.rates.last, 4);
 
     session.endBoost();
     await pumpEventQueue();
     expect(player.rates.last, 1);
 
     await store.setPlaybackPreferences(
-      store.playbackPreferences.copyWith(boostSpeed: 3),
+      store.playbackPreferences.copyWith(boostSpeed: 4),
     );
     session.holdBoost();
     await pumpEventQueue();
-    expect(player.rates.last, 3);
+    expect(player.rates.last, 4);
   });
 
   test('the next episode opens early and keeps loading while paused', () async {

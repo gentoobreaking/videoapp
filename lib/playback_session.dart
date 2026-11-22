@@ -663,33 +663,22 @@ class PlaybackSession extends ChangeNotifier {
     if (cacheSize != null) {
       await platform.setProperty('cache', '${cacheSize * 1024}');
     }
-    if (prefs.enableMpvAdvanced) {
-      await platform.setProperty('network-timeout', '${prefs.networkTimeout}');
-    }
+    await platform.setProperty('network-timeout', '${prefs.networkTimeout}');
 
     if (Platform.isAndroid) {
       await platform.setProperty('hwdec-codecs', 'all');
       await platform.setProperty('vd-lavc-skiploopfilter', 'nonkey');
-      if (prefs.enableMpvAdvanced) {
-        await platform.setProperty(
-          'vd-lavc-threads',
-          '${prefs.decoderThreads}',
-        ); // 0 = 自動，多核機器更快
-      }
+      await platform.setProperty(
+        'vd-lavc-threads',
+        '${prefs.decoderThreads}',
+      ); // 0 = 自動，多核機器更快
       await platform.setProperty('vd-lavc-fast', 'yes');
       await platform.setProperty('video-sync', 'audio');
       await platform.setProperty('framedrop', 'vo');
     }
 
     // 畫質與色彩：色彩空間自動。
-    // 僅在啟用進階播放器優化時套用。
-    if (prefs.enableMpvAdvanced) {
-      await platform.setProperty('colormatrix', prefs.colormatrix);
-      if (prefs.sharpenDenoise) {
-        await platform.setProperty('sharpen', '0.5');
-        await platform.setProperty('denoise', '0.5');
-      }
-    }
+    await platform.setProperty('colormatrix', prefs.colormatrix);
 
     await platform.setProperty(
       'demuxer-lavf-o',
@@ -1036,7 +1025,6 @@ class PlaybackSession extends ChangeNotifier {
             lastPrefs.networkTimeout != prefs.networkTimeout ||
             lastPrefs.decoderThreads != prefs.decoderThreads ||
             lastPrefs.colormatrix != prefs.colormatrix ||
-            lastPrefs.sharpenDenoise != prefs.sharpenDenoise ||
             lastPrefs.videoFit != prefs.videoFit ||
             lastPrefs.outputSizeDebounce != prefs.outputSizeDebounce);
     if (index != _index ||
