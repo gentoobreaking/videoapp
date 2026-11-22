@@ -591,9 +591,11 @@ class NativeRepository extends AppRepository {
     );
     final htmlUrl = data['html_url'] as String?;
     if (tagName == null || tagName.isEmpty || htmlUrl == null) return null;
+    // Extract semantic version (X.Y.Z) from tag, which may be like "2.0.3+134-android"
+    final tagSemanticVersion = tagName.split('+').first.split('-').first;
     // Strip build number (+N) for comparison; currentAppVersion() returns "X.Y.Z+N"
     final currentVersion = version.split('+').first;
-    if (tagName == currentVersion) return null;
+    if (tagSemanticVersion == currentVersion) return null;
     return AppUpdate(version: tagName, url: htmlUrl);
   }
 
