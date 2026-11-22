@@ -4,7 +4,7 @@ import 'dart:ui' show Size;
 import 'catalog_sort.dart';
 
 const playbackSpeeds = [.5, .75, 1.0, 1.1, 1.25, 1.5, 2.0, 3.0];
-const boostSpeeds = [1.5, 2.0, 2.5, 3.0, 4.0];
+const boostSpeeds = [4.0, 8.0, 16.0, 32.0];
 const danmakuColors = [
   0xFFFFFFFF,
   0xFFFFE066,
@@ -79,10 +79,10 @@ const danmakuWordLimit = 60;
 class PlaybackPreferences {
   const PlaybackPreferences({
     this.speed = 1,
-    this.boostSpeed = 2,
+    this.boostSpeed = 4,
     this.quality = 0,
     this.autoAdvance = true,
-    this.danmaku = true,
+    this.danmaku = false,
     this.danmakuScale = 1,
     this.danmakuColor = 0xFFFFFFFF,
     this.danmakuOpacity = 1,
@@ -96,7 +96,7 @@ class PlaybackPreferences {
     this.preloadDownload = false,
     this.preloadCount = 1,
     this.televisionDecoder = TelevisionDecoder.optimized,
-    this.preopen,
+    this.preopen = true,
     this.doubleTapSeek = true,
     this.swipeLevels = true,
     this.swipeEpisodes = false,
@@ -108,15 +108,12 @@ class PlaybackPreferences {
     this.portraitStyleForWide = false,
     this.autoPictureInPicture = false,
     this.videoFit = VideoFit.auto,
-    this.conservativeMode = false,
-    this.bufferSize = 64,
+    this.bufferSize = null,
     this.cacheSize,
-    this.networkTimeout = 20,
+    this.networkTimeout = 15,
     this.decoderThreads = 0,
     this.colormatrix = 'auto',
-    this.sharpenDenoise = false,
     this.outputSizeDebounce = 100,
-    this.enableMpvAdvanced = false,
   });
 
   final double speed;
@@ -152,15 +149,12 @@ class PlaybackPreferences {
   final bool portraitStyleForWide;
   final bool autoPictureInPicture;
   final VideoFit videoFit;
-  final bool conservativeMode;
-  final int bufferSize;
+  final int? bufferSize;
   final int? cacheSize;
   final int networkTimeout;
   final int decoderThreads;
   final String colormatrix;
-  final bool sharpenDenoise;
   final int outputSizeDebounce;
-  final bool enableMpvAdvanced;
 
   bool preopens({required bool television}) => preopen ?? !television;
 
@@ -201,9 +195,7 @@ class PlaybackPreferences {
     int? networkTimeout,
     int? decoderThreads,
     String? colormatrix,
-    bool? sharpenDenoise,
     int? outputSizeDebounce,
-    bool? enableMpvAdvanced,
   }) => PlaybackPreferences(
     speed: speed ?? this.speed,
     quality: quality ?? this.quality,
@@ -235,15 +227,12 @@ class PlaybackPreferences {
     portraitStyleForWide: portraitStyleForWide ?? this.portraitStyleForWide,
     autoPictureInPicture: autoPictureInPicture ?? this.autoPictureInPicture,
     videoFit: videoFit ?? this.videoFit,
-    conservativeMode: conservativeMode ?? this.conservativeMode,
     bufferSize: bufferSize ?? this.bufferSize,
     cacheSize: cacheSize ?? this.cacheSize,
     networkTimeout: networkTimeout ?? this.networkTimeout,
     decoderThreads: decoderThreads ?? this.decoderThreads,
     colormatrix: colormatrix ?? this.colormatrix,
-    sharpenDenoise: sharpenDenoise ?? this.sharpenDenoise,
     outputSizeDebounce: outputSizeDebounce ?? this.outputSizeDebounce,
-    enableMpvAdvanced: enableMpvAdvanced ?? this.enableMpvAdvanced,
   );
 
   Map<String, dynamic> toJson() => {
@@ -277,23 +266,20 @@ class PlaybackPreferences {
     'portraitStyleForWide': portraitStyleForWide,
     'autoPictureInPicture': autoPictureInPicture,
     'videoFit': videoFit.name,
-    'conservativeMode': conservativeMode,
     'bufferSize': bufferSize,
     'cacheSize': cacheSize,
     'networkTimeout': networkTimeout,
     'decoderThreads': decoderThreads,
     'colormatrix': colormatrix,
-    'sharpenDenoise': sharpenDenoise,
     'outputSizeDebounce': outputSizeDebounce,
-    'enableMpvAdvanced': enableMpvAdvanced,
   };
 
   factory PlaybackPreferences.fromJson(Map<String, dynamic> value) {
     final speed = (value['speed'] as num? ?? 1).toDouble();
     final quality = value['quality'] as int? ?? 0;
-    final boostSpeed = (value['boostSpeed'] as num? ?? 2).toDouble();
+    final boostSpeed = (value['boostSpeed'] as num? ?? 4).toDouble();
     final autoAdvance = value['autoAdvance'] as bool? ?? true;
-    final danmaku = value['danmaku'] as bool? ?? true;
+    final danmaku = value['danmaku'] as bool? ?? false;
     final preload = value['preload'] as bool? ?? true;
     final preloadDownload = value['preloadDownload'] as bool? ?? false;
     final preloadCount = (value['preloadCount'] as int? ?? 1).clamp(1, 5);
@@ -304,7 +290,7 @@ class PlaybackPreferences {
     }
     return PlaybackPreferences(
       speed: speed,
-      boostSpeed: boostSpeeds.contains(boostSpeed) ? boostSpeed : 2,
+      boostSpeed: boostSpeeds.contains(boostSpeed) ? boostSpeed : 4,
       quality: quality,
       autoAdvance: autoAdvance,
       danmaku: danmaku,
@@ -339,7 +325,7 @@ class PlaybackPreferences {
       televisionDecoder:
           TelevisionDecoder.values.asNameMap()[value['televisionDecoder']] ??
           TelevisionDecoder.optimized,
-      preopen: value['preopen'] as bool?,
+      preopen: value['preopen'] as bool? ?? true,
       doubleTapSeek: value['doubleTapSeek'] as bool? ?? true,
       swipeLevels: value['swipeLevels'] as bool? ?? true,
       swipeEpisodes: value['swipeEpisodes'] as bool? ?? false,
@@ -351,15 +337,12 @@ class PlaybackPreferences {
       portraitStyleForWide: value['portraitStyleForWide'] as bool? ?? false,
       autoPictureInPicture: value['autoPictureInPicture'] as bool? ?? false,
       videoFit: VideoFit.values.asNameMap()[value['videoFit']] ?? VideoFit.auto,
-      conservativeMode: value['conservativeMode'] as bool? ?? false,
-      bufferSize: (value['bufferSize'] as num? ?? 64).toInt(),
+      bufferSize: (value['bufferSize'] as num?)?.toInt(),
       cacheSize: (value['cacheSize'] as num?)?.toInt(),
-      networkTimeout: (value['networkTimeout'] as num? ?? 20).toInt(),
+      networkTimeout: (value['networkTimeout'] as num? ?? 15).toInt(),
       decoderThreads: (value['decoderThreads'] as num? ?? 0).toInt(),
       colormatrix: value['colormatrix'] as String? ?? 'auto',
-      sharpenDenoise: value['sharpenDenoise'] as bool? ?? false,
       outputSizeDebounce: (value['outputSizeDebounce'] as num? ?? 100).toInt(),
-      enableMpvAdvanced: value['enableMpvAdvanced'] as bool? ?? false,
     );
   }
 }

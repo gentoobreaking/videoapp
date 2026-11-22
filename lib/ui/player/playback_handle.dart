@@ -6,11 +6,13 @@ import '../../local_store.dart';
 import '../../models.dart';
 import '../../playback_session.dart';
 
-Player _player({required int bufferSize}) => Player(
-  configuration: PlayerConfiguration(
-    bufferSize: bufferSize * 1024 * 1024,
-    logLevel: MPVLogLevel.warn,
-  ),
+Player _player({int? bufferSize}) => Player(
+  configuration: bufferSize == null
+      ? const PlayerConfiguration(logLevel: MPVLogLevel.warn)
+      : PlayerConfiguration(
+          bufferSize: bufferSize * 1024 * 1024,
+          logLevel: MPVLogLevel.warn,
+        ),
 );
 
 class PlaybackHandle {

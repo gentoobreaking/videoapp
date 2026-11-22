@@ -161,7 +161,7 @@ void main() {
       expect(store.miniWindow, isNull);
       expect(store.playbackPreferences.autoPictureInPicture, isFalse);
       expect(store.displayMode, 'auto');
-      expect(store.themeMode, 'system');
+      expect(store.themeMode, 'dark');
       expect(store.themeColor, ThemeColor.orange);
       expect(store.sourceEnabled('hongguo'), isTrue);
       expect(store.sourceEnabled('huangdou'), isTrue);
@@ -354,7 +354,7 @@ void main() {
           for (final current in [store, await restartStore(store)]) {
             expect(current.favorites.map((item) => item.id), [first.id]);
             expect(current.watched(first.id)?.position, 15);
-            expect(current.themeMode, 'system');
+            expect(current.themeMode, 'dark');
             expect(current.playbackPreferences.speed, 1);
           }
         }

@@ -535,7 +535,7 @@ class LocalStore extends ChangeNotifier {
 
   String get themeMode {
     final value = _settings['themeMode'];
-    return _themeModes.contains(value) ? value as String : 'system';
+    return _themeModes.contains(value) ? value as String : 'dark';
   }
 
   bool get followSystemColor => _flag('followSystemColor', true);
@@ -558,7 +558,7 @@ class LocalStore extends ChangeNotifier {
 
   bool get televisionKeyboard => _flag('televisionKeyboard', false);
   bool get historyTab => _flag('historyTab', true);
-  bool get pureBlack => _flag('pureBlack', false);
+  bool get pureBlack => _flag('pureBlack', true);
   bool get blurCoversButton => _flag('blurCoversButton', false);
   String get blurCoversLaunch => switch (_settings['blurCoversLaunch']) {
     final String mode when coverBlurLaunchModes.containsKey(mode) => mode,

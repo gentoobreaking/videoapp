@@ -67,15 +67,15 @@ const _decoders = {
   TelevisionDecoder.hardware: '硬解（兼容）',
   TelevisionDecoder.software: '软解（兼容）',
 };
-const _bufferSizes = {32: '32 MB', 64: '64 MB', 128: '128 MB', 256: '256 MB'};
+const _bufferSizes = {8: '8 MB', 16: '16 MB', 32: '32 MB', 64: '64 MB'};
 const _cacheSizes = {
   null: '關閉',
+  8: '8 MB',
+  16: '16 MB',
+  32: '32 MB',
   64: '64 MB',
-  100: '100 MB',
-  200: '200 MB',
-  400: '400 MB',
 };
-const _networkTimeouts = {10: '10 秒', 20: '20 秒', 30: '30 秒', 60: '60 秒'};
+const _networkTimeouts = {5: '5 秒', 10: '10 秒', 15: '15 秒', 30: '30 秒'};
 const _decoderThreads = {
   0: '自動',
   1: '1 執行緒',
@@ -357,28 +357,8 @@ class SettingsSection extends StatelessWidget {
           ),
         ],
       ),
-      if (television)
-        SettingsCard(
-          children: [
-            SwitchTile(
-              title: '電視端保守模式',
-              subtitle: '開啟後降低記憶體與運算負載，適用於較舊的電視或機頂盒，下次播放時生效',
-              value: preferences.conservativeMode,
-              onChanged: (value) => savePreferences(
-                preferences.copyWith(conservativeMode: value),
-              ),
-            ),
-          ],
-        ),
       SettingsCard(
         children: [
-          SwitchTile(
-            title: '啟用進階播放器優化',
-            subtitle: '預設關閉，開啟後可調整網路超時、解碼執行緒、色彩空間、色調映射、縮放濾鏡、隔行處理與銳化降噪等參數',
-            value: preferences.enableMpvAdvanced,
-            onChanged: (value) =>
-                savePreferences(preferences.copyWith(enableMpvAdvanced: value)),
-          ),
           ValueTile<int?>(
             title: '網路快取大小',
             subtitle: '關閉時使用播放器內建預設快取，開啟後可指定快取大小',
@@ -387,47 +367,38 @@ class SettingsSection extends StatelessWidget {
             onChanged: (value) =>
                 savePreferences(preferences.copyWith(cacheSize: value)),
           ),
-          if (preferences.enableMpvAdvanced) ...[
-            ValueTile<int>(
-              title: '播放器緩衝大小',
-              subtitle: '播放器緩衝池大小，越大啟動越穩定，佔用記憶體越多',
-              options: _bufferSizes,
-              value: preferences.bufferSize,
-              onChanged: (value) =>
-                  savePreferences(preferences.copyWith(bufferSize: value)),
-            ),
-            ValueTile<int>(
-              title: '網路超時時間',
-              subtitle: '解析播放地址時的等待超時秒數',
-              options: _networkTimeouts,
-              value: preferences.networkTimeout,
-              onChanged: (value) =>
-                  savePreferences(preferences.copyWith(networkTimeout: value)),
-            ),
-            ValueTile<int>(
-              title: '解碼執行緒數',
-              subtitle: '0 為自動，適合多核裝置提升解碼效率',
-              options: _decoderThreads,
-              value: preferences.decoderThreads,
-              onChanged: (value) =>
-                  savePreferences(preferences.copyWith(decoderThreads: value)),
-            ),
-            ValueTile<String>(
-              title: '色彩空間',
-              subtitle: '影片色彩空間解碼標準，自動通常即可',
-              options: _colormatrixs,
-              value: preferences.colormatrix,
-              onChanged: (value) =>
-                  savePreferences(preferences.copyWith(colormatrix: value)),
-            ),
-            SwitchTile(
-              title: '銳化與降噪',
-              subtitle: '輕微銳化與降噪，改善低畫質來源觀感，較耗效能',
-              value: preferences.sharpenDenoise,
-              onChanged: (value) =>
-                  savePreferences(preferences.copyWith(sharpenDenoise: value)),
-            ),
-          ],
+          ValueTile<int>(
+            title: '播放器緩衝大小',
+            subtitle: '播放器緩衝池大小，越大啟動越穩定，佔用記憶體越多',
+            options: _bufferSizes,
+            value: preferences.bufferSize,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(bufferSize: value)),
+          ),
+          ValueTile<int>(
+            title: '網路超時時間',
+            subtitle: '解析播放地址時的等待超時秒數',
+            options: _networkTimeouts,
+            value: preferences.networkTimeout,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(networkTimeout: value)),
+          ),
+          ValueTile<int>(
+            title: '解碼執行緒數',
+            subtitle: '0 為自動，適合多核裝置提升解碼效率',
+            options: _decoderThreads,
+            value: preferences.decoderThreads,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(decoderThreads: value)),
+          ),
+          ValueTile<String>(
+            title: '色彩空間',
+            subtitle: '影片色彩空間解碼標準，自動通常即可',
+            options: _colormatrixs,
+            value: preferences.colormatrix,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(colormatrix: value)),
+          ),
         ],
       ),
       SettingsCard(
