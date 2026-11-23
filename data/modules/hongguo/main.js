@@ -63,7 +63,6 @@ const tagPanelCategory = "5000";
 const paths = {
   videoDetail: "/novel/player/video_detail/v1/",
   videoModel: "/novel/player/multi_video_model/player/v1",
-  videoModelV2: "/novel/player/video_model/v1/",
   videoTab: "/reading/bookapi/video_tab/multi_video_model/v1/",
   landpage: "/reading/distribution/category/landpage/v/",
   seriesPack: "/reading/distribution/book_pack_fields/inner_feed_detail/v1/",
@@ -81,6 +80,9 @@ const paths = {
 const modelBaseUrls = [
   "https://api5-normal-sinfonlinea.fqnovel.com",
   "https://api5-normal-sinfonlinec.fqnovel.com",
+];
+const modelBackupUrls = [
+  "https://api5-normal-hl.fqnovel.com",
 ];
 
 const genres = [
@@ -2539,6 +2541,7 @@ function fetchTabMedia(videoId, helper) {
 }
 
 function fetchPlayerMedia(videoId, helper) {
+  // 對齊 jackotom/aston314：video_platform=1024, mixed_video_id_map={"1004":[vid]}
   const payload = {
     biz_param: {
       detail_page_version: 0, device_level: 1, disable_digg_stat: false, disable_video_relate_book: false,
@@ -2556,20 +2559,34 @@ function fetchPlayerMedia(videoId, helper) {
 }
 
 function fetchModelMedia(videoId, helper) {
-  // 對齊 jackotom 8.0：device_level=3, from_video_id='', source=9
+  // 對齊 aston314/hongguo-tv: video_platform=1024, mixed_video_id_map={"1004":[vid]}
+  // endpoint: /novel/player/multi_video_model/player/v1 (POST)
   const payload = {
     biz_param: {
-      detail_page_version: 0, device_level: 3, disable_digg_stat: false, disable_video_relate_book: false,
-      need_all_video_definition: true, need_mp4_align: false, use_os_player: false, use_server_dns: false, video_platform: 3,
-      from_video_id: '', source: 9,
+      detail_page_version: 0, device_level: 1, disable_digg_stat: false, disable_video_relate_book: false,
+      need_all_video_definition: true, need_mp4_align: false, use_os_player: false, use_server_dns: false, video_platform: 1024,
     },
-    content_type: 1004,
-    video_id: String(videoId),
+    mixed_video_id_map: { "1004": [videoId] }, dr_scene: "player",
   };
   let lastError;
   for (const baseUrl of modelBaseUrls) {
     try {
-      const result = appRequest("POST", paths.videoModelV2, null, payload, { helper, deadline: Date.now() + 12000 });
+      const result = appRequest("POST", paths.videoModel, null, payload, { helper, deadline: Date.now() + 12000 });
+      const entries = nested(result, "data");
+      const data = nested(isRecord(entries["1004"]) ? entries["1004"] : entries, videoId);
+      if (isEmptyRecord(data)) {
+        throw failure("红果 App 未返回所请求的分集播放信息", { noCompatibleMedia: true });
+      }
+      return mediaFromModel(appVideoModel(data));
+    } catch (error) {
+      lastError = error;
+      if (error.noCompatibleMedia) throw error;
+    }
+  }
+  // 備用端點：https://api5-normal-hl.fqnovel.com
+  for (const baseUrl of modelBackupUrls) {
+    try {
+      const result = appRequest("POST", paths.videoModel, null, payload, { helper, deadline: Date.now() + 12000 });
       const entries = nested(result, "data");
       const data = nested(isRecord(entries["1004"]) ? entries["1004"] : entries, videoId);
       if (isEmptyRecord(data)) {
