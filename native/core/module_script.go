@@ -34,7 +34,6 @@ var moduleInvoker = goja.MustCompile("module-invoker", `(function(exports) {
 type jsProvider struct {
 	module           *jsModule
 	host             Host
-	allowlistStrict  bool
 	exclusive        chan struct{}
 	slots            chan struct{}
 	idle             chan *jsInstance
@@ -175,7 +174,7 @@ func moduleMedia(media ProviderMedia) jsMedia {
 }
 
 func (module *jsModule) provider(host Host) Provider {
-	p := &jsProvider{module: module, host: host, allowlistStrict: host.AllowlistStrict(),
+	p := &jsProvider{module: module, host: host,
 		exclusive: make(chan struct{}, 1), cache: map[string]moduleCacheEntry{},
 		slots: make(chan struct{}, moduleInstanceLimit), idle: make(chan *jsInstance, moduleInstanceLimit)}
 	module.active.Store(p)
@@ -495,7 +494,8 @@ func (p *jsProvider) allowedAddress(raw string) error {
 	if err != nil || address.Scheme != "https" && address.Scheme != "http" || address.Hostname() == "" {
 		return errors.New("请求地址无效")
 	}
-	if p.allowlistStrict && !p.module.allowsHost(address.Hostname()) {
+	// 即時讀取 host 當前的 AllowlistStrict 設定，避免開關切換不生效
+	if p.host.AllowlistStrict() && !p.module.allowsHost(address.Hostname()) {
 		return fmt.Errorf("模块清单未声明访问 %s", address.Hostname())
 	}
 	return nil
