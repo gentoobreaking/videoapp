@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-files-path name="external_files" path="."/>
+    <!-- 覆蓋 files 目錄：getApplicationDocumentsDirectory() 在 Android 上返回 /data/data/<pkg>/files/ -->
     <files-path name="internal_files" path="."/>
+    <!-- 覆蓋 cache 目錄：getCacheDirectory() 返回 /data/data/<pkg>/cache/ -->
+    <cache-path name="cache" path="."/>
+    <!-- 覆蓋 external files 目錄：getExternalStorageDirectory() 返回 /sdcard/Android/data/<pkg>/files/ -->
+    <external-files-path name="external_files" path="."/>
+    <!-- 覆蓋 app_flutter 目錄：新版 Flutter path_provider 返回 /data/data/<pkg>/app_flutter/ -->
+    <!-- 注意：root-path 僅在特定 Android 版本和裝置上可靠，這裡備用 -->
+    <root-path name="root" path="."/>
 </paths>

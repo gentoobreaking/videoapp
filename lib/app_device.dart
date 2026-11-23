@@ -306,6 +306,51 @@ class AppDevice {
     }
   }
 
+  /// 取得 native 側的更新 APK 暫存路徑（位於 App cache，用完即清）。
+  static Future<String> apkCachePath() async {
+    if (!PlatformCapabilities.isAndroid) {
+      throw AppFailure('仅支持 Android 平台');
+    }
+    try {
+      final path = await channel.invokeMethod<String>('apkCachePath');
+      if (path == null || path.isEmpty) {
+        throw AppFailure('无法取得 APK 暂存路径');
+      }
+      return path;
+    } on PlatformException catch (error) {
+      throw AppFailure(error.message ?? '无法取得 APK 暂存路径');
+    }
+  }
+
+  /// 儲存空間權限：API 29+ 一律為真；較舊版本必要時彈出系統對話框。
+  static Future<bool> requestStoragePermission() async {
+    if (!PlatformCapabilities.isAndroid) return false;
+    try {
+      return await channel.invokeMethod<bool>('requestStoragePermission') ??
+          false;
+    } on PlatformException catch (error) {
+      DiaryService.add(
+        '[AppDevice] requestStoragePermission 失敗: ${error.message}',
+      );
+      return false;
+    }
+  }
+
+  /// 把已下載的 APK 複製到公開 Download 資料夾供手動安裝，回傳顯示檔名。
+  static Future<String?> saveApkToDownloads({
+    required String apkPath,
+    required String name,
+  }) async {
+    try {
+      return await channel.invokeMethod<String>('saveApkToDownloads', {
+        'path': apkPath,
+        'name': name,
+      });
+    } on PlatformException catch (error) {
+      throw AppFailure(error.message ?? '无法保存到 Download 文件夹');
+    }
+  }
+
   static Future<void> installApk(String apkPath) async {
     if (!PlatformCapabilities.isAndroid) return;
     try {

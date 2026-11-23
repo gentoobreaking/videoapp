@@ -58,6 +58,9 @@ private const val ORIENTATION_SETTLE_MS = 800L
 private const val CREATE_DOCUMENT_REQUEST = 7301
 private const val STORAGE_PERMISSION_REQUEST = 7302
 private const val PICTURE_IN_PICTURE_ACTION = "com.videoapp.PICTURE_IN_PICTURE_ACTION"
+private const val UPDATE_APK_NAME = "videoapp-update.apk"
+private const val DOWNLOAD_APK_PREFIX = "videoapp-"
+private const val APK_MIME_TYPE = "application/vnd.android.package-archive"
 
 private const val LARGE_CANVAS_DP = 1000f
 private const val TARGET_CANVAS_DP = 720f
@@ -243,6 +246,8 @@ class MainActivity : FlutterActivity() {
             window.isStatusBarContrastEnforced = false
         }
         if (pictureInPictureSupported()) registerPictureInPictureReceiver()
+        clearApkCache()
+        clearLegacyApkTemp()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -506,21 +511,8 @@ class MainActivity : FlutterActivity() {
                                 DocumentsContract.deleteDocument(contentResolver, Uri.parse(uri))
                             }.getOrDefault(false))
                         }
-                        "requestVideoExport" -> {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
-                                checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
-                                PackageManager.PERMISSION_GRANTED) {
-                                result.success(true)
-                            } else if (permissionResult != null) {
-                                result.error("permission_pending", "正在申请存储权限", null)
-                            } else {
-                                permissionResult = result
-                                requestPermissions(
-                                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                                    STORAGE_PERMISSION_REQUEST
-                                )
-                            }
-                        }
+                        "requestVideoExport" -> requestStoragePermission(result)
+                        "requestStoragePermission" -> requestStoragePermission(result)
                         "exportVideo" -> {
                             val source = call.argument<String>("source")
                             val folder = call.argument<String>("folder")
@@ -534,6 +526,35 @@ class MainActivity : FlutterActivity() {
                                         outcome.fold(
                                             { result.success(null) },
                                             { result.error("export_failed", "导出失败：${it.message}", null) }
+                                        )
+                                    }
+                                }.start()
+                            }
+                        }
+                        "apkCachePath" -> {
+                            clearApkCache()
+                            result.success(File(cacheDir, UPDATE_APK_NAME).absolutePath)
+                        }
+                        "saveApkToDownloads" -> {
+                            val apkPath = call.argument<String>("path")
+                            val name = call.argument<String>("name")
+                            if (apkPath.isNullOrEmpty() || name.isNullOrEmpty()) {
+                                result.error("invalid_arg", "缺少 APK 路徑或檔名", null)
+                            } else {
+                                Thread {
+                                    val outcome = runCatching {
+                                        copyApkToPublicDownloads(File(apkPath), name)
+                                    }
+                                    runOnUiThread {
+                                        outcome.fold(
+                                            { result.success(it) },
+                                            {
+                                                result.error(
+                                                    "save_failed",
+                                                    "儲存到 Download 失敗：${it.message}",
+                                                    null
+                                                )
+                                            }
                                         )
                                     }
                                 }.start()
@@ -553,19 +574,121 @@ class MainActivity : FlutterActivity() {
             }
     }
 
+    private fun requestStoragePermission(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            result.success(true)
+        } else if (permissionResult != null) {
+            result.error("permission_pending", "正在申請儲存權限", null)
+        } else {
+            permissionResult = result
+            requestPermissions(
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                STORAGE_PERMISSION_REQUEST
+            )
+        }
+    }
+
+    private fun clearApkCache() {
+        cacheDir.listFiles { file ->
+            file.extension.equals("apk", ignoreCase = true)
+        }?.forEach { it.delete() }
+    }
+
+    /** 舊版本把更新包寫在 app_flutter/；清理這些殘留檔，避免長期佔用空間。 */
+    private fun clearLegacyApkTemp() {
+        val flutterDir = File(applicationInfo.dataDir, "app_flutter")
+        if (!flutterDir.isDirectory) return
+        flutterDir.listFiles { file ->
+            file.name.startsWith(DOWNLOAD_APK_PREFIX) &&
+                file.extension.equals("apk", ignoreCase = true)
+        }?.forEach { it.delete() }
+    }
+
+    /**
+     * 複製到公開的 Download 資料夾，供系統安裝程式或使用者手動安裝；
+     * 只保留最新一份，回傳顯示檔名。
+     */
+    private fun copyApkToPublicDownloads(source: File, displayName: String): String {
+        if (!source.exists()) throw IOException("APK 檔案不存在")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, displayName)
+                put(MediaStore.Downloads.MIME_TYPE, APK_MIME_TYPE)
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = contentResolver.insert(collection, values)
+                ?: throw IOException("無法建立 Download 項目")
+            try {
+                contentResolver.openOutputStream(uri)?.use { stream ->
+                    source.inputStream().use { it.copyTo(stream) }
+                } ?: throw IOException("無法寫入 Download 項目")
+            } catch (e: Exception) {
+                contentResolver.delete(uri, null, null)
+                throw e
+            }
+            contentResolver.update(
+                uri,
+                ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) },
+                null,
+                null
+            )
+            removeStaleDownloadedApks(displayName)
+            return displayName
+        }
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            throw IOException("尚未取得儲存權限")
+        }
+        val directory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            ?: throw IOException("找不到 Download 目錄")
+        directory.mkdirs()
+        val target = File(directory, displayName)
+        source.copyTo(target, overwrite = true)
+        MediaScannerConnection.scanFile(this, arrayOf(target.path), arrayOf(APK_MIME_TYPE), null)
+        directory.listFiles { file ->
+            file.name.startsWith(DOWNLOAD_APK_PREFIX) && file != target
+        }?.forEach { it.delete() }
+        return displayName
+    }
+
+    private fun removeStaleDownloadedApks(keep: String) {
+        val selection =
+            "${MediaStore.Downloads.DISPLAY_NAME} LIKE ? AND ${MediaStore.Downloads.DISPLAY_NAME} != ?"
+        runCatching {
+            contentResolver.delete(
+                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                selection,
+                arrayOf("$DOWNLOAD_APK_PREFIX%", keep)
+            )
+        }
+    }
+
     private fun installApk(result: MethodChannel.Result, apkPath: String) {
         try {
-            val file = File(apkPath)
-            if (!file.exists()) {
+            val source = File(apkPath)
+            if (!source.exists()) {
                 result.error("install_failed", "APK 文件不存在", null)
                 return
             }
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    setDataAndType(FileProvider.getUriForFile(this@MainActivity, "${packageName}.provider", file), "application/vnd.android.package-archive")
-                } else {
-                    setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
+            // FileProvider 只認 file_paths.xml 宣告的根目錄；
+            // 任何來源路徑一律先落到 cacheDir，再以 content URI 提供給安裝程式。
+            val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val cached = File(cacheDir, UPDATE_APK_NAME)
+                if (source.canonicalPath != cached.canonicalPath) {
+                    cached.delete()
+                    source.copyTo(cached, overwrite = true)
                 }
+                FileProvider.getUriForFile(this, "${packageName}.provider", cached)
+            } else {
+                Uri.fromFile(source)
+            }
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, APK_MIME_TYPE)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             startActivity(intent)

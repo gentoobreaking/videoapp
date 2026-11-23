@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 
 import '../app_device.dart';
@@ -46,7 +45,7 @@ Future<void> runStartupChecks(BuildContext context, LocalStore store) async {
     case _UpdateChoice.skip:
       await store.setIgnoredUpdate(update.version);
     case _UpdateChoice.download:
-      if (context.mounted) await _downloadAndInstall(context, update.url);
+      if (context.mounted) await _downloadAndInstall(context, update);
     case _UpdateChoice.dismiss || null:
       return;
   }
@@ -85,11 +84,11 @@ Future<void> checkUpdateManually(BuildContext context) async {
   if (!context.mounted) return;
   final choice = await _askUpdate(context, current, update, manual: true);
   if (choice == _UpdateChoice.download && context.mounted) {
-    await _downloadAndInstall(context, update.url);
+    await _downloadAndInstall(context, update);
   }
 }
 
-Future<void> _downloadAndInstall(BuildContext context, String url) async {
+Future<void> _downloadAndInstall(BuildContext context, AppUpdate update) async {
   if (!Platform.isAndroid) {
     ScaffoldMessenger.of(
       context,
@@ -98,14 +97,16 @@ Future<void> _downloadAndInstall(BuildContext context, String url) async {
   }
 
   final messenger = ScaffoldMessenger.of(context);
-  final uri = Uri.parse(url);
-  final fileName =
-      'videoapp-${DateTime.now().toIso8601String().substring(0, 10)}.apk';
+  final uri = Uri.parse(update.url);
 
-  // Download APK
+  // 先問儲存權限：取得才順手存一份到公開 Download 供手動安裝後備；
+  // 被拒絕或不支援時不阻斷下載與安裝流程。
+  final copyToDownloads = await AppDevice.requestStoragePermission();
+
   messenger.showSnackBar(const SnackBar(content: Text('正在下载更新包...')));
 
   try {
+    final apkFile = File(await AppDevice.apkCachePath());
     final response = await http.get(uri);
     if (response.statusCode != 200) {
       messenger.showSnackBar(
@@ -122,12 +123,33 @@ Future<void> _downloadAndInstall(BuildContext context, String url) async {
       );
       return;
     }
-
-    final appDir = await getApplicationDocumentsDirectory();
-    final apkFile = File('${appDir.path}/$fileName');
     await apkFile.writeAsBytes(bytes);
 
-    messenger.showSnackBar(const SnackBar(content: Text('下载完成，正在安装...')));
+    String? savedName;
+    if (copyToDownloads) {
+      final semanticVersion =
+          RegExp(r'\d+\.\d+\.\d+').firstMatch(update.version)?.group(0) ??
+          update.version;
+      final date = DateTime.now().toIso8601String().substring(0, 10);
+      try {
+        savedName = await AppDevice.saveApkToDownloads(
+          apkPath: apkFile.path,
+          name: 'videoapp-$semanticVersion-$date.apk',
+        );
+      } catch (_) {
+        savedName = null;
+      }
+    }
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          savedName == null
+              ? '下载完成，正在安装...'
+              : '下载完成，正在安装...\n已另存到 Download 文件夹：$savedName，未自动安装时可手动安装',
+        ),
+      ),
+    );
 
     // Trigger installation via native code
     await AppDevice.installApk(apkFile.path);
