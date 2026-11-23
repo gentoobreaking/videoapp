@@ -6,7 +6,8 @@
 
 set -euo pipefail
 
-REPO="guoapp-modules/hongguo"
+#REPO="guoapp-modules/hongguo"
+REPO="Xsummer/hongguo"
 TG_API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
 TELEGRAM_CHAT_ID=6748222184
 

@@ -6,7 +6,8 @@
 
 set -euo pipefail
 
-REPO="guoapp-modules/hongguo"
+#REPO="guoapp-modules/hongguo"
+REPO="Xsummer/hongguo"
 STATE_FILE="/tmp/hongguo_last_release.txt"
 TG_API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
 
