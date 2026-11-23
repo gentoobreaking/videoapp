@@ -1,6 +1,8 @@
 package core
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
@@ -76,6 +78,18 @@ func (p *jsProvider) hostUtilities(instance *jsInstance) map[string]any {
 		return array
 	}
 	return map[string]any{
+		"gzipSync": func(data goja.Value) goja.Value {
+			input := bytesOf(data)
+			var buf bytes.Buffer
+			gz := gzip.NewWriter(&buf)
+			if _, err := gz.Write(input); err != nil {
+				panic(vm.NewGoError(err))
+			}
+			if err := gz.Close(); err != nil {
+				panic(vm.NewGoError(err))
+			}
+			return bytesValue(buf.Bytes())
+		},
 		"debugLog": func(message string) {
 			fmt.Fprintln(os.Stderr, "[MODULE DEBUG]", message)
 		},

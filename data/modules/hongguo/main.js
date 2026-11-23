@@ -1362,6 +1362,16 @@ function newDeviceId() {
   return (1000000000000000000n + (value % 8000000000000000000n)).toString();
 }
 
+// jackotom 測試用的固定 device identity（用於對照測試）
+const TEST_DEVICE = {
+  deviceId: "7000000000000000001",
+  installId: "7000000000000000002",
+  helperDeviceId: "7000000000000000003",
+  helperInstallId: "7000000000000000004",
+  cdid: "00000000-0000-4000-8000-000000000003",
+};
+const USE_TEST_DEVICE = false; // 設為 true 可使用 jackotom 的固定 device identity 進行對照測試
+
 function emptyCursor() {
   return { offset: 0, sessionId: "", lastId: "", pageSignature: "", initialized: false, exhausted: false, updatedAt: "0001-01-01T00:00:00Z" };
 }
@@ -1399,6 +1409,9 @@ function updateState(change) {
 }
 
 function deviceOf(state, helper) {
+  if (USE_TEST_DEVICE) {
+    return helper ? [TEST_DEVICE.helperDeviceId || TEST_DEVICE.deviceId, TEST_DEVICE.helperInstallId || TEST_DEVICE.installId, true] : [TEST_DEVICE.deviceId, TEST_DEVICE.installId, true];
+  }
   if (helper) {
     return [state.helperDeviceId || "", state.helperInstallId || "", state.helperRegistered === true];
   }
@@ -1434,6 +1447,10 @@ function searchQuery(deviceId, installId) {
 }
 
 function registerDevice() {
+  if (USE_TEST_DEVICE) {
+    debugLog("[DEBUG] registerDevice → 使用測試 device identity，跳過註冊");
+    return { deviceId: TEST_DEVICE.deviceId, installId: TEST_DEVICE.installId };
+  }
   const header = {
     display_name: "红果免费短剧", aid: 8662, app_version: appVersionName, version_code: Number(appVersionCode),
     manifest_version_code: Number(appVersionCode), update_version_code: Number(appVersionCode), channel: "update_64", package: "com.phoenix.read",
@@ -1486,6 +1503,9 @@ function registerDevice() {
 }
 
 function ensureDevice(helper, rejected) {
+  if (USE_TEST_DEVICE) {
+    return; // 測試模式使用固定 device identity，無需註冊
+  }
   const settled = (state) => {
     const [current, , registered] = deviceOf(state, helper);
     return rejected === "" ? registered : rejected !== current;
@@ -1566,8 +1586,10 @@ function appRequest(method, path, extra, payload, options) {
   } else {
     baseQuery = appQuery(deviceId, installId);
   }
-  const query = Object.assign(baseQuery, extra || {});
-  const body = payload === null || payload === undefined ? null : typeof payload === "string" ? payload : JSON.stringify(payload);
+  const values = Object.assign({}, baseQuery, extra || {});
+  const jsonBody = payload === null || payload === undefined ? null : typeof payload === "string" ? payload : JSON.stringify(payload);
+  // 僅 V5 簽名路徑需要 gzip body
+  const gzippedBody = (signedV5 && jsonBody !== null) ? host.gzipSync(host.utf8Encode(jsonBody)) : null;
   const attempts = Math.min(Math.max(host.retries(), 1), 3);
   let lastError = null;
   let rotations = 0;
@@ -1594,33 +1616,43 @@ function appRequest(method, path, extra, payload, options) {
       continue;
     }
     const now = Date.now();
-    query._rticket = String(now);
+    const rticket = String(now);
+    // values 用於簽名（不含 _rticket），query 用於實際請求（含 _rticket）
+    const query = Object.assign({}, values, { _rticket: rticket });
     const rawQuery = encodeQuery(query);
     let requestUrl = address + "?" + rawQuery;
     const headers = signedV5
       ? { "User-Agent": playbackUserAgent, Accept: "application/json" }
       : { "User-Agent": appUserAgent, Accept: "application/json", "X-XS-From-Web": "0", "Sdk-Version": "2" };
+    let requestBody;
     if (signedV5) {
-      const prepared = signPlaybackV5(address, query, body === null ? null : host.utf8Encode(body), now);
+      // signPlaybackV5 內部會自動添加 _rticket，傳入 values（不含 _rticket）
+      const prepared = signPlaybackV5(address, values, gzippedBody, now);
       requestUrl = prepared.url;
       Object.assign(headers, prepared.headers);
+      if (gzippedBody !== null) headers["Content-Encoding"] = "gzip";
+      requestBody = gzippedBody;
     } else if (comment) {
       headers["Comment-Source"] = "601";
       headers["Server-Channel"] = "1000";
-      Object.assign(headers, signComment(rawQuery, query.aid, now, nonce));
+      Object.assign(headers, signComment(rawQuery, values.aid, now, nonce));
+      requestBody = jsonBody;
     } else if (signed) {
-      Object.assign(headers, signPlayer(rawQuery, body, query.aid, query.device_id, now, host.randomBytes(11)));
+      Object.assign(headers, signPlayer(rawQuery, jsonBody, values.aid, values.device_id, now, host.randomBytes(11)));
+      requestBody = jsonBody;
+    } else {
+      requestBody = jsonBody;
     }
-    if (body !== null) {
+    if (jsonBody !== null) {
       headers["Content-Type"] = "application/json; charset=utf-8";
     }
     debugLog("[DEBUG] appRequest → " + method + " " + requestUrl);
     debugLog("[DEBUG] appRequest headers: " + JSON.stringify(headers));
-    if (body) debugLog("[DEBUG] appRequest body: " + body);
+    if (jsonBody) debugLog("[DEBUG] appRequest body (json): " + jsonBody);
     let response;
     try {
       response = host.fetch({
-        method, url: requestUrl, headers, body: body === null ? "" : body, ticket,
+        method, url: requestUrl, headers, body: requestBody === null ? "" : requestBody, ticket,
         limit: responseLimit, timeoutMs: Math.min(appRequestTimeoutMs, remainingMs(deadline)),
         followRedirects: true, anyStatus: true, background: options.background === true,
       });
@@ -2385,13 +2417,13 @@ function appMedia(videoId) {
 }
 
 function fetchAppMedia(videoId, helper) {
-  let tabError, playerError, modelError;
-  // 1. video_tab (GET, V5 簽名)
+  let modelError, playerError, tabError;
+  // 1. 新 model API (多域名，POST, V5 簽名) - 優先嘗試，對齊 jackotom 順序
   try {
-    return fetchTabMedia(videoId, helper);
+    return fetchModelMedia(videoId, helper);
   } catch (error) {
     if (error.noCompatibleMedia) throw error;
-    tabError = error;
+    modelError = error;
   }
   // 2. player 接口 (POST, 走 playbackBaseUrl, V5 簽名)
   try {
@@ -2400,14 +2432,14 @@ function fetchAppMedia(videoId, helper) {
     if (error.noCompatibleMedia) throw error;
     playerError = error;
   }
-  // 3. 新 model API (多域名嘗試，POST, V5 簽名)
+  // 3. video_tab (GET, V5 簽名) - 最後嘗試
   try {
-    return fetchModelMedia(videoId, helper);
+    return fetchTabMedia(videoId, helper);
   } catch (error) {
     if (error.noCompatibleMedia) throw error;
-    modelError = error;
+    tabError = error;
   }
-  throw new Error(message(tabError) + "；" + message(playerError) + "；" + message(modelError));
+  throw new Error(message(modelError) + "；" + message(playerError) + "；" + message(tabError));
 }
 
 function fetchTabMedia(videoId, helper) {
@@ -2442,12 +2474,14 @@ function fetchPlayerMedia(videoId, helper) {
 }
 
 function fetchModelMedia(videoId, helper) {
+  // 對齊 jackotom/hongguo-drama 的 model API 格式：video_platform="3"，使用 content_type
   const payload = {
     biz_param: {
       detail_page_version: 0, device_level: 1, disable_digg_stat: false, disable_video_relate_book: false,
-      need_all_video_definition: true, need_mp4_align: false, use_os_player: false, use_server_dns: false, video_platform: 1024,
+      need_all_video_definition: true, need_mp4_align: false, use_os_player: false, use_server_dns: false, video_platform: 3,
     },
-    mixed_video_id_map: { "1004": [videoId] }, dr_scene: "player",
+    content_type: 1004,
+    video_id: String(videoId),
   };
   let lastError;
   for (const baseUrl of modelBaseUrls) {
