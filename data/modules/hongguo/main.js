@@ -2416,9 +2416,85 @@ function appMedia(videoId) {
   return fetchAppMedia(videoId, true);
 }
 
+/**
+ * 正規化視頻 URL（處理雙斜杠、空格等）
+ */
+function normalizeVideoUrl(value) {
+  if (typeof value !== "string") return "";
+  let url = value.trim().replace(/\\/g, "/").replace(/&/g, "&");
+  if (url.startsWith("//")) url = "https:" + url;
+  return url;
+}
+
+/**
+ * 判斷是否為公開媒體域名（僅允許官方 CDN 域名）
+ */
+function isPublicMediaUrl(href) {
+  try {
+    const url = new URL(href);
+    return /(^|\.)(qznovelvod|fqnovelvod|douyinvod)\.com$/i.test(url.hostname);
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * 官網公開兜底播放接口 (jackotom 8.0 新增)
+ * 2026-11-23 App 播放模型全鏈路返回 200/0 字節時，官網仍能通過該接口
+ * 獲取當前公開分集的完整 360p MP4。它不是 SEO 頁裡的 10 秒預覽。
+ * 必須是同步函數，因為 resolveMedia 不能是異步函數。
+ */
+function fetchPublicFallbackPlayUrl(vid, signal) {
+  if (!/^\d{1,30}$/.test(String(vid))) return null;
+  const url = "https://hongguoduanju.com/api/video/protected/fallback-play-info";
+  const guarded = webMediaRequestOptions("https://hongguoduanju.com/api/video/protected/fallback-play-info", { trustedOfficialDns: true });
+  const response = host.fetch({
+    method: "POST",
+    url,
+    headers: {
+      "User-Agent": webUserAgent,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "Referer": "https://hongguoduanju.com/",
+    },
+    data: { item_id: String(vid) },
+    timeout: 6000,
+    maxRedirects: 0,
+    responseType: "json",
+    maxContentLength: 64 * 1024,
+    validateStatus: () => true,
+    signal,
+  });
+  if (signal?.aborted) return null;
+  const payload = response?.data;
+  if (response?.status !== 200 || !payload || typeof payload !== "object"
+      || Number(payload.base_resp?.StatusCode ?? payload.code ?? 0) !== 0) {
+    return null;
+  }
+  let media;
+  try { media = new URL(normalizeVideoUrl(payload.main_url)); } catch (_) { return null; }
+  if (media.protocol !== "https:" || media.username || media.password || !isPublicMediaUrl(media.href)
+      || !/(^|\.)(?:qznovelvod|fqnovelvod|douyinvod)\.com$/i.test(media.hostname)) return null;
+  const expires = Number(payload.url_expire);
+  if (Number.isFinite(expires) && expires > 0 && expires * 1000 <= Date.now() + 5000) return null;
+  return {
+    url: media.href,
+    spadeA: null,
+    contentKey: null,
+    codec: "h264",
+    source: "web",
+    vid: String(vid),
+    quality: "360p",
+    width: 360,
+    height: 640,
+    userAgent: webUserAgent,
+    referer: "https://hongguoduanju.com/",
+  };
+}
+
 function fetchAppMedia(videoId, helper) {
-  let modelError, playerError, tabError;
-  // 1. 新 model API (多域名，POST, V5 簽名) - 優先嘗試，對齊 jackotom 順序
+  let modelError, playerError, tabError, webError;
+  // 1. 新 model API (多域名，POST, V5 簽名) - 優先嘗試，對齊 jackotom 8.0 順序
   try {
     return fetchModelMedia(videoId, helper);
   } catch (error) {
@@ -2432,14 +2508,20 @@ function fetchAppMedia(videoId, helper) {
     if (error.noCompatibleMedia) throw error;
     playerError = error;
   }
-  // 3. video_tab (GET, V5 簽名) - 最後嘗試
+  // 3. video_tab (GET, V5 簽名)
   try {
     return fetchTabMedia(videoId, helper);
   } catch (error) {
     if (error.noCompatibleMedia) throw error;
     tabError = error;
   }
-  throw new Error(message(modelError) + "；" + message(playerError) + "；" + message(tabError));
+  // 4. 官網公開兜底接口 (jackotom 8.0 新增)
+  try {
+    return fetchPublicFallbackPlayUrl(videoId);
+  } catch (error) {
+    webError = error;
+  }
+  throw new Error(message(modelError) + "；" + message(playerError) + "；" + message(tabError) + "；" + message(webError));
 }
 
 function fetchTabMedia(videoId, helper) {
@@ -2474,11 +2556,12 @@ function fetchPlayerMedia(videoId, helper) {
 }
 
 function fetchModelMedia(videoId, helper) {
-  // 對齊 jackotom/hongguo-drama 的 model API 格式：video_platform="3"，使用 content_type
+  // 對齊 jackotom 8.0：device_level=3, from_video_id='', source=9
   const payload = {
     biz_param: {
-      detail_page_version: 0, device_level: 1, disable_digg_stat: false, disable_video_relate_book: false,
+      detail_page_version: 0, device_level: 3, disable_digg_stat: false, disable_video_relate_book: false,
       need_all_video_definition: true, need_mp4_align: false, use_os_player: false, use_server_dns: false, video_platform: 3,
+      from_video_id: '', source: 9,
     },
     content_type: 1004,
     video_id: String(videoId),
