@@ -453,42 +453,47 @@ class _ModuleCard extends StatelessWidget {
     final footer = leading.isNotEmpty || actions.isNotEmpty;
     return GroupCard(
       children: [
-        InkWell(
-          onTap: onTap,
+        // 使用 FocusTraversalGroup 讓 TV 模式下焦點能從卡片主體向下移到底部按鈕
+        FocusTraversalGroup(
           child: Column(
             children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(18, 14, 12, footer ? 10 : 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DefaultTextStyle.merge(
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontSize: 18,
+              // 主體區：只包標題、版本、內文，支援 onTap 跳詳情
+              InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(18, 14, 12, footer ? 10 : 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            DefaultTextStyle.merge(
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontSize: 18,
+                              ),
+                              child: _ModuleTitle(name, adult: adult),
                             ),
-                            child: _ModuleTitle(name, adult: adult),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '版本：${version.isEmpty ? '未标注' : version}',
-                            style: meta,
-                          ),
-                          Text('标识：$id', style: meta),
-                          if (body.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            ...body,
+                            const SizedBox(height: 2),
+                            Text(
+                              '版本：${version.isEmpty ? '未标注' : version}',
+                              style: meta,
+                            ),
+                            Text('标识：$id', style: meta),
+                            if (body.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              ...body,
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                    ?trailing,
-                  ],
+                      ?trailing,
+                    ],
+                  ),
                 ),
               ),
+              // 底部按鈕區：獨立焦點區塊，TV 可用 D-pad 向下進入
               if (footer) ...[
                 Divider(
                   height: 1,
