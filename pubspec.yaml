@@ -1,7 +1,7 @@
 name: videoapp
 description: 独立运行的多端短剧应用
 publish_to: none
-version: 2.0.6+138
+version: 2.0.7+138
 
 environment:
   sdk: '>=3.12.0 <4.0.0'
