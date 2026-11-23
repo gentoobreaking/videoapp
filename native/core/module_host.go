@@ -13,7 +13,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -74,6 +76,9 @@ func (p *jsProvider) hostUtilities(instance *jsInstance) map[string]any {
 		return array
 	}
 	return map[string]any{
+		"debugLog": func(message string) {
+			fmt.Fprintln(os.Stderr, "[MODULE DEBUG]", message)
+		},
 		"retries":  func() int { return p.host.Retries() },
 		"maxPages": func() int { return p.host.MaxPages() },
 		"reserve": func(request jsReserveRequest) uint64 {

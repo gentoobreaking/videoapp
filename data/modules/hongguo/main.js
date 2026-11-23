@@ -28,6 +28,7 @@ const danmakuMaxDurationMs = 24 * 60 * minuteMs;
 const defaultMaxPages = 50;
 const deviceRotations = 3;
 const registerPauseMs = 10 * minuteMs;
+const debugLog = host.debugLog;
 const appRequestTimeoutMs = 20 * secondMs;
 const searchTimeoutMs = 40 * secondMs;
 const searchPageTimeoutMs = 12 * secondMs;
@@ -1385,11 +1386,16 @@ function registerDevice() {
   query.req_id = uuidLike();
   const ticket = host.reserve({ url: deviceRegisterUrl });
   query._rticket = String(Date.now());
+  debugLog("[DEBUG] registerDevice → POST " + deviceRegisterUrl + "?" + encodeQuery(query));
+  debugLog("[DEBUG] registerDevice headers: " + JSON.stringify({ "User-Agent": appUserAgent, Accept: "application/json", "Content-Type": "application/json; charset=utf-8" }));
+  debugLog("[DEBUG] registerDevice body: " + body);
   const response = host.fetch({
     method: "POST", url: deviceRegisterUrl + "?" + encodeQuery(query), body, ticket,
     limit: 64 * 1024, timeoutMs: appRequestTimeoutMs, followRedirects: true, anyStatus: true,
     headers: { "User-Agent": appUserAgent, Accept: "application/json", "Content-Type": "application/json; charset=utf-8" },
   });
+  debugLog("[DEBUG] registerDevice ← status: " + response.status + " body.length: " + response.body.length);
+  debugLog("[DEBUG] registerDevice ← body preview: " + response.body.slice(0, 500));
   if (response.status >= 500) {
     throw new Error("红果设备注册 HTTP " + response.status);
   }
@@ -1410,6 +1416,7 @@ function registerDevice() {
   if (!numericId(deviceId) || !numericId(installId) || deviceId === "0" || installId === "0") {
     throw failure("红果设备注册未返回设备号", { rejection: true });
   }
+  debugLog("[DEBUG] registerDevice → deviceId: " + deviceId + " installId: " + installId);
   return { deviceId, installId };
 }
 
@@ -1540,6 +1547,9 @@ function appRequest(method, path, extra, payload, options) {
     if (body !== null) {
       headers["Content-Type"] = "application/json; charset=utf-8";
     }
+    debugLog("[DEBUG] appRequest → " + method + " " + requestUrl);
+    debugLog("[DEBUG] appRequest headers: " + JSON.stringify(headers));
+    if (body) debugLog("[DEBUG] appRequest body: " + body);
     let response;
     try {
       response = host.fetch({
@@ -1548,6 +1558,7 @@ function appRequest(method, path, extra, payload, options) {
         followRedirects: true, anyStatus: true, background: options.background === true,
       });
     } catch (error) {
+      debugLog("[DEBUG] appRequest ← fetch error: " + message(error));
       if (error.oversized) {
         throw new Error("红果 App 接口未返回有效数据");
       }
@@ -1557,6 +1568,8 @@ function appRequest(method, path, extra, payload, options) {
       }
       continue;
     }
+    debugLog("[DEBUG] appRequest ← status: " + response.status + " body.length: " + response.body.length);
+    debugLog("[DEBUG] appRequest ← body preview: " + response.body.slice(0, 500));
     if (response.status !== 200) {
       lastError = new Error("红果 App 接口 HTTP " + response.status);
       if (response.status >= 400 && response.status < 500) {
@@ -1597,13 +1610,17 @@ function appRequest(method, path, extra, payload, options) {
     if (code !== "" && code !== "0") {
       throw new Error("红果 App 接口暂不可用（" + truncate(code, 20) + "）");
     }
+    debugLog("[DEBUG] appRequest ← result code: " + code);
     return result;
   }
   throw lastError || new Error("红果 App 接口未返回有效数据");
 }
 
 function fetchSiteText(address, noCache) {
-  return host.fetchText({ url: address, referer: siteBaseUrl + "/", noCache: noCache === true }).body;
+  debugLog("[DEBUG] fetchSiteText → GET " + address);
+  const resp = host.fetchText({ url: address, referer: siteBaseUrl + "/", noCache: noCache === true });
+  debugLog("[DEBUG] fetchSiteText ← body.length: " + resp.body.length + " preview: " + resp.body.slice(0, 300));
+  return resp.body;
 }
 
 function leadingJson(text, start) {
@@ -2614,13 +2631,19 @@ function fallbackMedia(model, original) {
 }
 
 function webMedia(seriesId, videoId) {
+  debugLog("[DEBUG] webMedia → seriesId: " + seriesId + " videoId: " + videoId);
   const body = fetchSiteText(siteBaseUrl + "/player/" + encodeURIComponent(videoId));
   const page = routerLoaderMap(parseRouterData(body), "player_", "player_page");
+  debugLog("[DEBUG] webMedia page keys: " + Object.keys(page || {}));
+  debugLog("[DEBUG] webMedia page.protectedPlayback: " + mapString(page, "protectedPlayback"));
+  debugLog("[DEBUG] webMedia page.video_player_info exists: " + !!nested(page, "video_player_info"));
   if (mapString(page, "vid") !== videoId || mapString(page, "series_id") !== seriesId) {
     throw new Error("红果未返回所请求的剧集，可能仅允许网页试看；请在站点确认该集的访问权限");
   }
   const info = nested(page, "video_player_info");
+  debugLog("[DEBUG] webMedia info: " + JSON.stringify(info).slice(0, 500));
   const addresses = mediaAddresses(info);
+  debugLog("[DEBUG] webMedia addresses: " + addresses);
   if (addresses.length === 0) {
     throw new Error("红果该集未提供公开播放地址，可能需要登录或 App 授权；不会将试看集冒充该集下载");
   }
