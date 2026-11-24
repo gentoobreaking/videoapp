@@ -17,7 +17,7 @@ import (
 const (
 	moduleIndexFormat  = 1
 	moduleIndexBytes   = 1 << 20
-	moduleFetchTimeout = 20 * time.Second
+	moduleFetchTimeout = 5 * time.Second
 )
 
 var nativeModuleIndex = ""
@@ -34,7 +34,6 @@ var moduleIndexAuthHosts = map[string]bool{
 
 var (
 	moduleIndexAddresses = []string{
-		"https://raw.githubusercontent.com/gentoobreaking/video-src/refs/heads/main/index/index.json",
 		"https://cdn.jsdelivr.net/gh/guoapp-modules/index@main/index.json",
 	}
 	moduleFileAddresses = []string{
