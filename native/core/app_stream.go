@@ -32,19 +32,18 @@ type nativeStreamAsset struct {
 }
 
 type nativeStreamSession struct {
-	credentials   *MediaCredentials
-	mu            sync.Mutex
-	assets        map[string]nativeStreamAsset
-	referer       string
-	key           []byte
-	ctx           context.Context
-	cancel        context.CancelFunc
-	lastUsed      time.Time
-	diagnosticID  string
-	cencKey       []byte
-	cencMu        sync.Mutex
-	cenc          *cencLayout
-	cencComputing bool
+	credentials  *MediaCredentials
+	mu           sync.Mutex
+	assets       map[string]nativeStreamAsset
+	referer      string
+	key          []byte
+	ctx          context.Context
+	cancel       context.CancelFunc
+	lastUsed     time.Time
+	diagnosticID string
+	cencKey      []byte
+	cencMu       sync.Mutex
+	cenc         *cencLayout
 }
 
 type nativeStreamServer struct {

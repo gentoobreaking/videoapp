@@ -68,20 +68,7 @@ func (engine *nativeEngine) restoreProviderStates(disk nativeCatalogDisk) {
 			states, engine.providerStatesSaved = saved, body
 		}
 	}
-	defer func() {
-		engine.mu.Lock()
-		providerStatesCopy := make(map[string]json.RawMessage, len(engine.providerStates))
-		for k, v := range engine.providerStates {
-			providerStatesCopy[k] = v
-		}
-		savedBytes := engine.providerStatesSaved
-		engine.mu.Unlock()
-		if err := engine.writeProviderStates(providerStatesCopy); err == nil {
-			engine.mu.Lock()
-			engine.providerStatesSaved = savedBytes
-			engine.mu.Unlock()
-		}
-	}()
+	defer engine.writeProviderStatesLocked()
 	for source, raw := range states {
 		if p, ok := engine.downloader.provider(source); ok {
 			if stateful, ok := providerAs[CatalogStateful](p); ok {
@@ -274,6 +261,7 @@ func nativeGenericCategory(category string) bool {
 
 func (engine *nativeEngine) saveCatalogCache(source string, result *nativeCatalogResult) error {
 	engine.mu.Lock()
+	defer engine.mu.Unlock()
 	previous := engine.catalogs[source]
 	state := engine.catalogStates[source]
 	var items []LibraryDrama
@@ -325,32 +313,7 @@ func (engine *nativeEngine) saveCatalogCache(source string, result *nativeCatalo
 	if base, _, categorized := strings.Cut(source, "|"); categorized {
 		engine.catalogs[base] = mergeNativeCatalog(engine.catalogs[base], items)
 	}
-
-	// Prepare data for disk write while holding lock
-	catalogsCopy := make(map[string][]LibraryDrama, len(engine.catalogs))
-	for k, v := range engine.catalogs {
-		catalogsCopy[k] = v
-	}
-	statesCopy := make(map[string]nativeCatalogState, len(engine.catalogStates))
-	for k, v := range engine.catalogStates {
-		statesCopy[k] = v
-	}
-	categoriesCopy := make(map[string][]Category, len(engine.categoryOptions))
-	for k, v := range engine.categoryOptions {
-		categoriesCopy[k] = v
-	}
-	recommendationsCopy := make(map[string]nativeRecommendationState, len(engine.recommendations))
-	for k, v := range engine.recommendations {
-		recommendationsCopy[k] = v
-	}
-	providerStatesCopy := make(map[string]json.RawMessage, len(engine.providerStates))
-	for k, v := range engine.providerStates {
-		providerStatesCopy[k] = v
-	}
-	engine.mu.Unlock()
-
-	// Write to disk without holding the lock
-	err := engine.writeCatalogDisk(catalogsCopy, statesCopy, categoriesCopy, recommendationsCopy, providerStatesCopy)
+	err := engine.writeCatalogDiskLocked()
 	result.saveError = err
 	if err != nil {
 		result.Warning = joinNativeWarnings(result.Warning, err.Error())
@@ -360,72 +323,19 @@ func (engine *nativeEngine) saveCatalogCache(source string, result *nativeCatalo
 }
 
 func (engine *nativeEngine) writeCatalogDiskLocked() error {
-	// Deprecated: kept for compatibility, delegates to writeCatalogDisk with current state
-	engine.mu.Lock()
-	catalogsCopy := make(map[string][]LibraryDrama, len(engine.catalogs))
-	for k, v := range engine.catalogs {
-		catalogsCopy[k] = v
-	}
-	statesCopy := make(map[string]nativeCatalogState, len(engine.catalogStates))
-	for k, v := range engine.catalogStates {
-		statesCopy[k] = v
-	}
-	categoriesCopy := make(map[string][]Category, len(engine.categoryOptions))
-	for k, v := range engine.categoryOptions {
-		categoriesCopy[k] = v
-	}
-	recommendationsCopy := make(map[string]nativeRecommendationState, len(engine.recommendations))
-	for k, v := range engine.recommendations {
-		recommendationsCopy[k] = v
-	}
-	providerStatesCopy := make(map[string]json.RawMessage, len(engine.providerStates))
-	for k, v := range engine.providerStates {
-		providerStatesCopy[k] = v
-	}
-	engine.mu.Unlock()
-	return engine.writeCatalogDisk(catalogsCopy, statesCopy, categoriesCopy, recommendationsCopy, providerStatesCopy)
-}
-
-// writeCatalogDisk writes catalog data to disk without holding engine.mu.
-// Caller must provide copies of the data structures.
-func (engine *nativeEngine) writeCatalogDisk(
-	catalogs map[string][]LibraryDrama,
-	states map[string]nativeCatalogState,
-	categories map[string][]Category,
-	recommendations map[string]nativeRecommendationState,
-	providerStates map[string]json.RawMessage,
-) error {
-	// Trim catalogs (in-memory operation on the copy)
-	trimNativeCatalogs(catalogs)
-
-	body, err := json.Marshal(nativeCatalogDisk{Version: 3, Catalogs: catalogs, States: states, Categories: categories, Recommendations: recommendations})
+	trimNativeCatalogs(engine.catalogs)
+	body, err := json.Marshal(nativeCatalogDisk{Version: 3, Catalogs: engine.catalogs, States: engine.catalogStates, Categories: engine.categoryOptions, Recommendations: engine.recommendations})
 	if err == nil && len(body) > nativeCatalogMaxBytes {
 		err = errNativeCatalogLimit
 	}
 	if err == nil {
 		err = writeNativeCacheFile(filepath.Join(engine.cacheDirectory, "catalogs.json"), body)
 	}
-	// Write provider states without lock (uses its own internal locking if needed)
-	if stateErr := engine.writeProviderStates(providerStates); err == nil {
+	if stateErr := engine.writeProviderStatesLocked(); err == nil {
 		err = stateErr
 	}
 	engine.catalogSaveError = nativeSaveError("剧库", err)
 	return engine.catalogSaveError
-}
-
-// writeProviderStates writes provider states to disk without holding engine.mu.
-// Caller must provide a copy of the provider states.
-func (engine *nativeEngine) writeProviderStates(providerStates map[string]json.RawMessage) error {
-	body, err := json.Marshal(providerStates)
-	if err != nil || len(providerStates) == 0 || bytes.Equal(body, engine.providerStatesSaved) {
-		return err
-	}
-	if err = nativeDownloadWrite(filepath.Join(engine.directory, nativeProviderStatesFile), body); err == nil {
-		engine.mu.Lock()
-		engine.providerStatesSaved = body
-		engine.mu.Unlock()
-	}
-	return err
 }
 
 func moveLegacyNativeCache(directory, cache string) {
