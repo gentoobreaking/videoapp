@@ -568,6 +568,16 @@ class MainActivity : FlutterActivity() {
                                 installApk(result, apkPath)
                             }
                         }
+                        "scanFile" -> {
+                            val path = call.argument<String>("path")
+                            if (path.isNullOrEmpty()) {
+                                result.error("invalid_arg", "缺少檔案路徑", null)
+                            } else {
+                                MediaScannerConnection.scanFile(this, arrayOf(path), null) { _, _ ->
+                                    result.success(null)
+                                }
+                            }
+                        }
                         else -> result.notImplemented()
                     }
                 }

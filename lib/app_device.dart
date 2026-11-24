@@ -360,6 +360,16 @@ class AppDevice {
       rethrow;
     }
   }
+
+  /// 掃描檔案讓 MediaStore 立即索引（Android 專用）。
+  static Future<void> scanFile(String path) async {
+    if (!PlatformCapabilities.isAndroid) return;
+    try {
+      await channel.invokeMethod<void>('scanFile', {'path': path});
+    } catch (_) {
+      DiaryService.add('[AppDevice] scanFile 失敗');
+    }
+  }
 }
 
 enum PlayerOrientation {

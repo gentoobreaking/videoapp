@@ -9,32 +9,26 @@ import 'package:flutter/services.dart';
 import '../../app_build.dart';
 import '../app_scope.dart';
 import '../../local_store.dart';
+import '../../app_device.dart';
 import '../users/password_dialog.dart';
 import '../widgets/focus_ring.dart';
 
 Future<String?> exportBackupFile(LocalStore store, BuildContext context) async {
-  final isTelevision = AppScope.of(context).television;
   final repository = AppScope.of(context).repository;
   final content = await store.exportBackup();
   final bytes = Uint8List.fromList(utf8.encode(content));
   final fileName =
       '$appSlug-backup-${DateTime.now().toIso8601String().substring(0, 10)}.json';
 
-  if (isTelevision) {
-    // 電視上沒有檔案管理員支援系統「儲存檔案」選單，直接寫入下載目錄
-    final downloadDir = await repository.downloadDirectory();
-    if (downloadDir.isEmpty) return null;
-    final file = File(p.join(downloadDir, fileName));
-    await file.writeAsBytes(bytes);
-    return '备份已保存至下载目录：$fileName';
-  }
+  final downloadDir = await repository.downloadDirectory();
+  if (downloadDir.isEmpty) return null;
+  final file = File(p.join(downloadDir, fileName));
+  await file.writeAsBytes(bytes);
 
-  final saved = await FilePicker.saveFile(
-    fileName: fileName,
-    bytes: bytes,
-    mimeType: 'application/json',
-  );
-  return saved == null ? null : '备份已保存';
+  // Android: 掃描檔案讓 MediaStore 立即索引，其他平台無作用
+  await AppDevice.scanFile(file.path);
+
+  return '备份已保存至下载目录：$fileName';
 }
 
 Future<String?> _pickBackup() async {
