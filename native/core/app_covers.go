@@ -191,6 +191,17 @@ func (cache *nativeCoverCache) fetch(key string, drama LibraryDrama, referer, fa
 }
 
 func (cache *nativeCoverCache) download(ctx context.Context, address, referer string) ([]byte, error) {
+	start := time.Now()
+	var data []byte
+	var err error
+	defer func() {
+		cache.downloader.recordDiagnostic(diagnosticEvent{
+			Event:   "cover_download",
+			Source:  "cover",
+			Message: fmt.Sprintf("url=%s status=%d size=%d duration_ms=%d err=%v",
+				address, responseStatus(err), len(data), time.Since(start).Milliseconds(), err),
+		})
+	}()
 	request, err := http.NewRequestWithContext(context.WithValue(ctx, nativeCoverNetworkKey{}, true), http.MethodGet, address, nil)
 	if err != nil {
 		return nil, err
@@ -219,7 +230,7 @@ func (cache *nativeCoverCache) download(ctx context.Context, address, referer st
 	if response.ContentLength > nativeCoverMaxBytes {
 		return nil, errors.New("海报文件过大")
 	}
-	data, err := io.ReadAll(io.LimitReader(response.Body, nativeCoverMaxBytes+1))
+	data, err = io.ReadAll(io.LimitReader(response.Body, nativeCoverMaxBytes+1))
 	if err != nil {
 		return nil, err
 	}
@@ -231,6 +242,17 @@ func (cache *nativeCoverCache) download(ctx context.Context, address, referer st
 		return nil, errors.New("站源未返回有效海报")
 	}
 	return data, nil
+}
+
+func responseStatus(err error) int {
+	if err == nil {
+		return 200
+	}
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return 0
+	}
+	return -1
 }
 
 func nativeDecodeCover(data []byte) []byte {

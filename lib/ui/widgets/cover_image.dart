@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../core_bridge.dart';
 import '../../cover_loader.dart';
+import '../../diary_service.dart';
 import '../../models.dart';
 import '../app_scope.dart';
 import '../cover_blur.dart';
@@ -339,7 +340,13 @@ class _CoverImageState extends State<CoverImage> {
         cacheWidth: _decodeWidth,
         excludeFromSemantics: true,
         frameBuilder: fadeInFrameBuilder,
-        errorBuilder: (_, _, _) => _failure(snapshot.data),
+        errorBuilder: (context, error, stackTrace) {
+          DiaryService.add(
+            '[CoverImage] decode error drama=${widget.drama.id} '
+            'path=${snapshot.data} err=$error stack=$stackTrace',
+          );
+          return _failure(snapshot.data);
+        },
       );
     },
   );

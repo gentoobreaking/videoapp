@@ -76,6 +76,8 @@ const danmakuSpeedMax = 2.0;
 const danmakuWordLength = 40;
 const danmakuWordLimit = 60;
 
+enum SeekStepMode { auto, custom }
+
 class PlaybackPreferences {
   const PlaybackPreferences({
     this.speed = 1,
@@ -114,6 +116,8 @@ class PlaybackPreferences {
     this.outputSizeDebounce = 100,
     this.bufferSize = 8,
     this.cacheSize = 8,
+    this.seekStepMode = SeekStepMode.auto,
+    this.seekStep = 10,
   });
 
   final double speed;
@@ -155,6 +159,8 @@ class PlaybackPreferences {
   final int decoderThreads;
   final String colormatrix;
   final int outputSizeDebounce;
+  final SeekStepMode seekStepMode;
+  final int seekStep;
 
   bool preopens({required bool television}) => preopen ?? !television;
 
@@ -195,6 +201,8 @@ class PlaybackPreferences {
     int? decoderThreads,
     String? colormatrix,
     int? outputSizeDebounce,
+    SeekStepMode? seekStepMode,
+    int? seekStep,
   }) => PlaybackPreferences(
     speed: speed ?? this.speed,
     quality: quality ?? this.quality,
@@ -232,6 +240,8 @@ class PlaybackPreferences {
     decoderThreads: decoderThreads ?? this.decoderThreads,
     colormatrix: colormatrix ?? this.colormatrix,
     outputSizeDebounce: outputSizeDebounce ?? this.outputSizeDebounce,
+    seekStepMode: seekStepMode ?? this.seekStepMode,
+    seekStep: seekStep ?? this.seekStep,
   );
 
   Map<String, dynamic> toJson() => {
@@ -271,6 +281,8 @@ class PlaybackPreferences {
     'decoderThreads': decoderThreads,
     'colormatrix': colormatrix,
     'outputSizeDebounce': outputSizeDebounce,
+    'seekStepMode': seekStepMode.name,
+    'seekStep': seekStep,
   };
 
   factory PlaybackPreferences.fromJson(Map<String, dynamic> value) {
@@ -342,6 +354,10 @@ class PlaybackPreferences {
       decoderThreads: (value['decoderThreads'] as num? ?? 0).toInt(),
       colormatrix: value['colormatrix'] as String? ?? 'auto',
       outputSizeDebounce: (value['outputSizeDebounce'] as num? ?? 100).toInt(),
+      seekStepMode:
+          SeekStepMode.values.asNameMap()[value['seekStepMode']] ??
+          SeekStepMode.auto,
+      seekStep: (value['seekStep'] as num? ?? 10).toInt().clamp(1, 3600),
     );
   }
 }

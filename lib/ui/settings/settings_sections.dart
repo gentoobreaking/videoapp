@@ -89,6 +89,20 @@ const _colormatrixs = {
   'bt709': 'BT.709',
   'bt2020': 'BT.2020',
 };
+const _seekStepModes = {
+  SeekStepMode.auto: '自動（根據影片長度）',
+  SeekStepMode.custom: '自訂固定步長',
+};
+const _seekSteps = {
+  5: '5 秒',
+  10: '10 秒',
+  15: '15 秒',
+  30: '30 秒',
+  60: '1 分鐘',
+  120: '2 分鐘',
+  300: '5 分鐘',
+  600: '10 分鐘',
+};
 const _links = [
   [
     ('GitHub · 重建版', String.fromEnvironment('PROJECT_URL')),
@@ -399,6 +413,23 @@ class SettingsSection extends StatelessWidget {
             onChanged: (value) =>
                 savePreferences(preferences.copyWith(colormatrix: value)),
           ),
+          ValueTile<SeekStepMode>(
+            title: '快轉/快退步長模式',
+            subtitle: '自動根據影片長度調整，或使用固定步長',
+            options: _seekStepModes,
+            value: preferences.seekStepMode,
+            onChanged: (value) =>
+                savePreferences(preferences.copyWith(seekStepMode: value)),
+          ),
+          if (preferences.seekStepMode == SeekStepMode.custom)
+            ValueTile<int>(
+              title: '固定步長',
+              subtitle: '自訂模式下的快轉/快退秒數',
+              options: _seekSteps,
+              value: preferences.seekStep,
+              onChanged: (value) =>
+                  savePreferences(preferences.copyWith(seekStep: value)),
+            ),
         ],
       ),
       SettingsCard(

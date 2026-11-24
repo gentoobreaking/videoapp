@@ -22,6 +22,23 @@ import 'window_frame.dart';
 import 'window_on_top.dart';
 import 'windows_data_migration.dart';
 
+int? _currentRssMB() {
+  if (!Platform.isLinux && !Platform.isAndroid) return null;
+  try {
+    final status = File('/proc/self/status').readAsStringSync();
+    for (final line in status.split('\n')) {
+      if (line.startsWith('VmRSS:')) {
+        final parts = line.split(RegExp(r'\s+'));
+        if (parts.length >= 2) {
+          final kb = int.tryParse(parts[1]);
+          if (kb != null) return (kb / 1024).round();
+        }
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Platform.isAndroid) {
@@ -134,9 +151,21 @@ class _AppBootstrapState extends State<AppBootstrap>
         store = local;
         repository.access = local;
       });
+      _startMemoryMonitoring();
     } catch (failure) {
       if (mounted) setState(() => error = failure);
     }
+  }
+
+  void _startMemoryMonitoring() {
+    const thresholdMB = 300;
+    Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final mb = _currentRssMB();
+      if (mb != null && mb > thresholdMB) {
+        DiaryService.add('[Memory] RSS 高: $mb MB (閾值 $thresholdMB MB)');
+      }
+    });
   }
 
   @override

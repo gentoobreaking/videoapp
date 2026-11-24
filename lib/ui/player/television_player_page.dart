@@ -72,6 +72,15 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
   int _seekOffset = 0;
   bool _seekShown = false;
 
+  // 滑鼠拖拉進度條相關
+  int? _dragSeekFrom;
+  double _dragSeekOffset = 0;
+  bool _isDragging = false;
+
+  // 長按加速相關
+  int _seekRepeatCount = 0;
+  DateTime? _lastSeekKeyTime;
+
   PlaybackSession get _session => widget.handle.session;
 
   @override
@@ -194,15 +203,46 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
     }
   }
 
-  void _step(int seconds) {
+  int _seekStep(Duration duration) {
+    final prefs = _session.preferences;
+    if (prefs.seekStepMode == SeekStepMode.custom) {
+      return prefs.seekStep;
+    }
+    // 自動模式：根據影片長度動態調整
+    final total = duration.inSeconds;
+    if (total <= 600) return 10; // ≤10分
+    if (total <= 1800) return 30; // 10-30分
+    if (total <= 3600) return 60; // 30-60分
+    if (total <= 7200) return 120; // 1-2小時
+    if (total <= 14400) return 300; // 2-4小時
+    return 600; // >4小時
+  }
+
+  void _step(int direction) {
     final state = _session.player.state;
     final duration = state.duration;
     if (!_session.ready || duration <= Duration.zero) return;
+
+    // 基礎步長（根據影片長度）
+    int step = _seekStep(duration);
+
+    // 長按加速：間隔 <300ms 連擊
+    final now = DateTime.now();
+    if (_lastSeekKeyTime != null &&
+        now.difference(_lastSeekKeyTime!).inMilliseconds < 300) {
+      _seekRepeatCount++;
+      final multiplier = (1.0 + _seekRepeatCount * 0.5).clamp(1.0, 8.0);
+      step = (step * multiplier).round();
+    } else {
+      _seekRepeatCount = 0;
+    }
+    _lastSeekKeyTime = now;
+
     if (!(_seekCommit?.isActive ?? false)) {
       _seekFrom = _seekTarget ?? state.position;
       _seekOffset = 0;
     }
-    _seekOffset += seconds;
+    _seekOffset += direction * step;
     final target = _seekFrom.inMilliseconds + _seekOffset * 1000;
     _seekDisplay?.cancel();
     _seekCommit?.cancel();
@@ -567,10 +607,10 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
         if (down) _episode(-1);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaFastForward:
-        _step(10);
+        _step(1);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.mediaRewind:
-        _step(-10);
+        _step(-1);
         return KeyEventResult.handled;
     }
     if (_menu case final menu?) return _menuKey(menu, key);
@@ -581,7 +621,7 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
         : 0;
     if (!_visible) {
       if (horizontal != 0) {
-        _step(horizontal * 10);
+        _step(horizontal);
         return KeyEventResult.handled;
       }
       if (_arrows.contains(key) || _confirms.contains(key)) {
@@ -594,7 +634,7 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
     final node = FocusManager.instance.primaryFocus;
     if (node == _bar) {
       if (horizontal != 0) {
-        _step(horizontal * 10);
+        _step(horizontal);
       } else if (key == LogicalKeyboardKey.arrowDown) {
         _play.requestFocus();
       } else if (_confirms.contains(key)) {
@@ -948,88 +988,147 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final x = width * played;
-        return Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.centerLeft,
-          children: [
-            Container(
-              height: thickness,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .22),
-                borderRadius: BorderRadius.circular(thickness / 2),
-              ),
-            ),
-            Container(
-              width: width * fraction(state.buffer),
-              height: thickness,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .38),
-                borderRadius: BorderRadius.circular(thickness / 2),
-              ),
-            ),
-            Container(
-              width: x,
-              height: thickness,
-              decoration: BoxDecoration(
-                color: colors.primary,
-                borderRadius: BorderRadius.circular(thickness / 2),
-              ),
-            ),
-            if (knob > 0)
-              Positioned(
-                left: x - knob / 2,
-                child: Container(
-                  width: knob,
-                  height: knob,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: focused
-                        ? [
-                            BoxShadow(
-                              color: colors.primary.withValues(alpha: .45),
-                              spreadRadius: 5,
-                            ),
-                          ]
-                        : null,
-                  ),
+
+        // 計算拖拉時的目標位置
+        final dragFraction = _isDragging
+            ? ((_dragSeekFrom! + _dragSeekOffset) /
+                      _session.player.state.duration.inMilliseconds)
+                  .clamp(0.0, 1.0)
+            : played;
+        final dragX = width * dragFraction;
+
+        return Listener(
+          onPointerDown: (_) {
+            if (!_session.ready ||
+                _session.player.state.duration <= Duration.zero)
+              return;
+            if (_isDragging) return;
+            setState(() {
+              _isDragging = true;
+              _dragSeekFrom = _session.player.state.position.inMilliseconds;
+              _dragSeekOffset = 0;
+            });
+          },
+          onPointerMove: (event) {
+            if (!_isDragging || _dragSeekFrom == null) return;
+            final offset =
+                _dragSeekOffset +
+                event.localDelta.dx /
+                    width *
+                    _session.player.state.duration.inMilliseconds;
+            setState(() {
+              _dragSeekOffset = offset
+                  .clamp(
+                    -_dragSeekFrom!,
+                    _session.player.state.duration.inMilliseconds -
+                        _dragSeekFrom!,
+                  )
+                  .toDouble();
+            });
+          },
+          onPointerUp: (_) {
+            if (!_isDragging || _dragSeekFrom == null) return;
+            final targetMs = (_dragSeekFrom! + _dragSeekOffset).round().clamp(
+              0,
+              _session.player.state.duration.inMilliseconds,
+            );
+            unawaited(_session.seekTo(Duration(milliseconds: targetMs)));
+            setState(() {
+              _isDragging = false;
+              _dragSeekFrom = null;
+              _dragSeekOffset = 0;
+            });
+          },
+          onPointerCancel: (_) {
+            setState(() {
+              _isDragging = false;
+              _dragSeekFrom = null;
+              _dragSeekOffset = 0;
+            });
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerLeft,
+            children: [
+              Container(
+                height: thickness,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .22),
+                  borderRadius: BorderRadius.circular(thickness / 2),
                 ),
               ),
-            if (focused)
-              Positioned(
-                left: x,
-                bottom: 24,
-                child: FractionalTranslation(
-                  translation: const Offset(-.5, 0),
+              Container(
+                width: width * fraction(state.buffer),
+                height: thickness,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .38),
+                  borderRadius: BorderRadius.circular(thickness / 2),
+                ),
+              ),
+              Container(
+                width: dragX,
+                height: thickness,
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  borderRadius: BorderRadius.circular(thickness / 2),
+                ),
+              ),
+              if (knob > 0)
+                Positioned(
+                  left: dragX - knob / 2,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
+                    width: knob,
+                    height: knob,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x59000000),
-                          blurRadius: 14,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
+                      shape: BoxShape.circle,
+                      boxShadow: focused
+                          ? [
+                              BoxShadow(
+                                color: colors.primary.withValues(alpha: .45),
+                                spreadRadius: 5,
+                              ),
+                            ]
+                          : null,
                     ),
-                    child: Text(
-                      formatClock(position),
-                      style: const TextStyle(
-                        color: Color(0xFF111111),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              if (focused)
+                Positioned(
+                  left: dragX,
+                  bottom: 24,
+                  child: FractionalTranslation(
+                    translation: const Offset(-.5, 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x59000000),
+                            blurRadius: 14,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        formatClock(position),
+                        style: const TextStyle(
+                          color: Color(0xFF111111),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         );
       },
     );
