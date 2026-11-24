@@ -14,7 +14,7 @@ import (
 	"github.com/bogdanfinn/tls-client/profiles"
 )
 
-const huangguoBrowserProfile = "Chrome 150"
+const huangguoBrowserProfile = "Chrome 152"
 
 type browserHTTPClient interface {
 	Do(*fhttp.Request) (*fhttp.Response, error)
@@ -70,9 +70,8 @@ func (transport *huangguoBrowserTransport) source(address *url.URL) string {
 func (transport *huangguoBrowserTransport) createClient(proxy string) (browserHTTPClient, error) {
 	idleTimeout := 90 * time.Second
 	options := []tlsclient.HttpClientOption{
-		tlsclient.WithClientProfile(profiles.Chrome_150),
+		tlsclient.WithClientProfile(profiles.Chrome_152),
 		tlsclient.WithRandomTLSExtensionOrder(),
-		tlsclient.WithDisableHttp3(),
 		tlsclient.WithNotFollowRedirects(),
 		tlsclient.WithTimeoutSeconds(45),
 		tlsclient.WithProxyUrl(proxy),
@@ -120,11 +119,11 @@ func (transport *huangguoBrowserTransport) client(request *http.Request) (browse
 
 func huangguoBrowserHeaders(request *http.Request) fhttp.Header {
 	headers := fhttp.Header{
-		"sec-ch-ua":                 {`"Chromium";v="150", "Google Chrome";v="150", "Not_A Brand";v="24"`},
+		"sec-ch-ua":                 {`"Chromium";v="152", "Google Chrome";v="152", "Not_A Brand";v="24"`},
 		"sec-ch-ua-mobile":          {"?0"},
 		"sec-ch-ua-platform":        {`"macOS"`},
 		"upgrade-insecure-requests": {"1"},
-		"user-agent":                {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"},
+		"user-agent":                {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"},
 		"accept":                    {"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"},
 		"sec-fetch-site":            {"same-origin"},
 		"sec-fetch-mode":            {"navigate"},
