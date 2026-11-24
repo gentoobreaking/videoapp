@@ -196,8 +196,8 @@ func (d *Downloader) writeModuleLocked(id string, manifest, code []byte) error {
 
 func (engine *nativeEngine) downloadModulePackage(ctx context.Context, address string) ([]byte, error) {
 	parsed, err := url.Parse(strings.TrimSpace(address))
-	if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
-		return nil, errors.New("请填写以 https:// 开头的安装包地址（仅支持 HTTPS）")
+	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
+		return nil, errors.New("请填写以 http:// 或 https:// 开头的安装包地址")
 	}
 	raw, err := engine.fetchLimited(ctx, parsed.String(), modulePackageBytes)
 	if err != nil {

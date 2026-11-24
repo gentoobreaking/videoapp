@@ -132,11 +132,7 @@ class SettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([
-      store.permissionUpdates,
-      store.settingsUpdates,
-      editor,
-    ]),
+    listenable: Listenable.merge([store, editor]),
     builder: (context, _) => group == SettingsGroup.appearance
         ? AppearanceSettings(store: store)
         : Column(

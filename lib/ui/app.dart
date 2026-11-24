@@ -154,10 +154,7 @@ class _DuanjuAppState extends State<DuanjuApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final store = widget.store;
     return ListenableBuilder(
-      listenable: Listenable.merge([
-        store?.permissionUpdates,
-        store?.settingsUpdates,
-      ]),
+      listenable: Listenable.merge([?store]),
       builder: (_, _) => _application(store),
     );
   }

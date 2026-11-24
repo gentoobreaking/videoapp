@@ -17,7 +17,7 @@ import (
 const (
 	moduleIndexFormat  = 1
 	moduleIndexBytes   = 1 << 20
-	moduleFetchTimeout = 5 * time.Second
+	moduleFetchTimeout = 20 * time.Second
 )
 
 var nativeModuleIndex = ""

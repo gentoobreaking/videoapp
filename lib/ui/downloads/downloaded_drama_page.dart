@@ -223,12 +223,7 @@ class _DownloadedDramaPageState extends State<DownloadedDramaPage> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([
-      widget.store.settingsUpdates,
-      widget.store.historyUpdates,
-      widget.downloads,
-      _updater,
-    ]),
+    listenable: Listenable.merge([widget.store, widget.downloads, _updater]),
     builder: (context, _) {
       final item = downloadedDramas(
         widget.downloads.jobs,

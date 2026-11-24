@@ -66,7 +66,7 @@ class SettingsCard extends StatelessWidget {
   );
 }
 
-class SwitchTile extends StatefulWidget {
+class SwitchTile extends StatelessWidget {
   const SwitchTile({
     super.key,
     required this.title,
@@ -82,41 +82,14 @@ class SwitchTile extends StatefulWidget {
   final bool enabled;
 
   @override
-  State<SwitchTile> createState() => _SwitchTileState();
-}
-
-class _SwitchTileState extends State<SwitchTile> {
-  late bool _localValue;
-
-  @override
-  void initState() {
-    super.initState();
-    _localValue = widget.value;
-  }
-
-  @override
-  void didUpdateWidget(covariant SwitchTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _localValue = widget.value;
-    }
-  }
-
-  void _handleChanged(bool value) {
-    if (!widget.enabled || widget.onChanged == null) return;
-    setState(() => _localValue = value);
-    widget.onChanged!(value);
-  }
-
-  @override
   Widget build(BuildContext context) => TileFocus(
     builder: (focusNode) => SwitchListTile(
       focusNode: focusNode,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      title: Text(widget.title),
-      subtitle: widget.subtitle == null ? null : Text(widget.subtitle!),
-      value: _localValue,
-      onChanged: widget.enabled ? _handleChanged : null,
+      title: Text(title),
+      subtitle: subtitle == null ? null : Text(subtitle!),
+      value: value,
+      onChanged: enabled ? onChanged : null,
     ),
   );
 }
