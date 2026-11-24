@@ -987,7 +987,6 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
     final track = LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final x = width * played;
 
         // 計算拖拉時的目標位置
         final dragFraction = _isDragging
@@ -1000,8 +999,9 @@ class _TelevisionPlayerPageState extends State<TelevisionPlayerPage>
         return Listener(
           onPointerDown: (_) {
             if (!_session.ready ||
-                _session.player.state.duration <= Duration.zero)
+                _session.player.state.duration <= Duration.zero) {
               return;
+            }
             if (_isDragging) return;
             setState(() {
               _isDragging = true;
