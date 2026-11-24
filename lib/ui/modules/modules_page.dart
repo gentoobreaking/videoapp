@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../core_bridge.dart';
 import '../../local_store.dart';
+import '../../modules_feed.dart';
 import '../../models.dart';
 import '../../source_modules.dart';
 import '../app_scope.dart';
@@ -55,62 +56,22 @@ class _ModulesPageState extends State<ModulesPage>
     with SingleTickerProviderStateMixin {
   late final _tabs = TabController(length: 4, vsync: this)
     ..addListener(_tabChanged);
-  List<SourceModule>? _modules;
-  String? _error;
-  ModuleStore? _index;
-  String? _indexError;
-  bool _busy = false;
-
-  LocalStore get _store => widget.store;
-
-  AppRepository get _repository => AppScope.of(context).repository;
-
-  bool get _canInstall => _store.profile.admin && !_store.locked && !_busy;
+  late final _feed = ModulesFeed(AppScope.of(context).repository, widget.store);
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refresh();
-      _loadIndex();
-    });
   }
 
   @override
   void dispose() {
     _tabs.dispose();
+    _feed.dispose();
     super.dispose();
   }
 
   void _tabChanged() {
     if (!_tabs.indexIsChanging) setState(() {});
-  }
-
-  Future<void> _refresh() async {
-    try {
-      final modules = await _repository.modules();
-      if (mounted) {
-        setState(() {
-          _modules = modules;
-          _error = null;
-        });
-      }
-    } catch (failure) {
-      if (mounted) setState(() => _error = '$failure');
-    }
-  }
-
-  Future<void> _loadIndex() async {
-    setState(() {
-      _index = null;
-      _indexError = null;
-    });
-    try {
-      final index = await _repository.moduleIndex();
-      if (mounted) setState(() => _index = index);
-    } catch (failure) {
-      if (mounted) setState(() => _indexError = '$failure');
-    }
   }
 
   void _show(String message) {
@@ -121,54 +82,12 @@ class _ModulesPageState extends State<ModulesPage>
     }
   }
 
-  Future<void> _run(Future<void> Function() work) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    try {
-      await work();
-    } catch (failure) {
-      _show('$failure');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-      await _refresh();
-    }
+  Future<void> _installIndexed(ModuleIndexEntry entry) async {
+    await _feed.installIndexed(entry);
+    setState(() {});
   }
 
-  Future<void> _installIndexed(ModuleIndexEntry entry) => _run(
-    () async => _install(
-      await _repository.prepareModule(
-        indexed: entry.id,
-        bundled: entry.bundled,
-      ),
-    ),
-  );
-
-  Future<void> _install(SourceModule module) async {
-    if (!mounted) return;
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (_) => _ModuleDialog(module: module, install: true),
-    );
-    if (accepted != true) return;
-    final id = await _repository.installModule(module.token);
-    if (!module.installed) {
-      await _store.setSourceEnabled(id, true);
-    }
-    final site = SourceSite.byId(id);
-    if (site.devices && !await _repository.sourceDevices(id)) {
-      try {
-        if (!await _repository.sourceDevices(id, register: true)) {
-          throw AppFailure('设备注册未完成');
-        }
-      } catch (failure) {
-        _show('${module.name} 已安装，但$failure；下次打开应用时会再次注册');
-        return;
-      }
-    }
-    _show('${module.name} 已安装');
-  }
-
-  Future<void> _installFile() => _run(() async {
+  Future<void> _installFile() async {
     final file = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['zip'],
@@ -186,8 +105,9 @@ class _ModulesPageState extends State<ModulesPage>
       );
       await File(location).writeAsBytes(await file.readAsBytes());
     }
-    await _install(await _repository.prepareModule(file: location));
-  });
+    await _feed.installFile();
+    if (mounted) setState(() {});
+  }
 
   Future<void> _installAddress() async {
     final address = await showDialog<String>(
@@ -195,9 +115,23 @@ class _ModulesPageState extends State<ModulesPage>
       builder: (_) => const _AddressDialog(),
     );
     if (address == null || address.isEmpty) return;
-    await _run(
-      () async => _install(await _repository.prepareModule(url: address)),
-    );
+    await _feed.installAddress(address);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _run(Future<void> Function() work) async {
+    if (_feed.busy) return;
+    setState(() {}); // trigger rebuild for busy state
+    try {
+      await work();
+    } catch (failure) {
+      _show('$failure');
+    } finally {
+      if (mounted) {
+        setState(() {}); // trigger rebuild for busy state
+        await _feed.refresh();
+      }
+    }
   }
 
   Future<void> _uninstall(SourceModule module) async {
@@ -227,18 +161,19 @@ class _ModulesPageState extends State<ModulesPage>
     );
     if (accepted != true) return;
     await _run(() async {
-      if (_repository.supportsDownloads && SourceSite.isAvailable(module.id)) {
-        await _repository.controlDownloads('pauseSource', id: module.id);
+      final repository = AppScope.of(context).repository;
+      if (repository.supportsDownloads && SourceSite.isAvailable(module.id)) {
+        await repository.controlDownloads('pauseSource', id: module.id);
       }
-      await _repository.uninstallModule(module.id);
+      await repository.uninstallModule(module.id);
       _show('${module.name} 已卸载');
     });
   }
 
   Future<void> _toggle(SourceModule module, bool value) {
-    final repository = _repository;
+    final repository = AppScope.of(context).repository;
     return saveSetting(context, () async {
-      await _store.setSourceEnabled(module.id, value);
+      await widget.store.setSourceEnabled(module.id, value);
       if (!value && repository.supportsDownloads) {
         await repository.controlDownloads('pauseSource', id: module.id);
       }
@@ -258,19 +193,19 @@ class _ModulesPageState extends State<ModulesPage>
   );
 
   Widget _installedTab() {
-    final modules = _modules;
-    final enabled = _canInstall;
     final latest = <String, ModuleIndexEntry>{};
-    for (final entry in _index?.entries ?? const <ModuleIndexEntry>[]) {
+    for (final entry in _feed.index?.entries ?? const <ModuleIndexEntry>[]) {
       final current = latest[entry.id];
       if (current == null ||
           isNewerModuleVersion(entry.version, current.version)) {
         latest[entry.id] = entry;
       }
     }
+    final modules = _feed.modules;
+    final enabled = _feed.canInstall && !_feed.busy;
     return _list([
-      if (_error case final error?) _Note(error),
-      if (modules == null && _error == null)
+      if (_feed.error case final error?) _Note(error),
+      if (modules == null && _feed.error == null)
         const _Loading()
       else if (modules != null && modules.isEmpty)
         const _Note('还没有安装模块。站源以模块的形式提供，可以从在线仓库、内置或手动安装。')
@@ -279,14 +214,14 @@ class _ModulesPageState extends State<ModulesPage>
           _InstalledCard(
             module: module,
             update: _updateFor(module, latest[module.id]),
-            enabled: _store.sourceEnabled(module.id),
+            enabled: widget.store.sourceEnabled(module.id),
             onToggle:
-                _store.profile.admin &&
+                widget.store.profile.admin &&
                     module.error.isEmpty &&
                     SourceSite.isAvailable(module.id)
                 ? (value) => _toggle(module, value)
                 : null,
-            admin: _store.profile.admin,
+            admin: widget.store.profile.admin,
             onDetails: () => _details(module),
             onUpdate: enabled
                 ? () => _installIndexed(latest[module.id]!)
@@ -297,12 +232,17 @@ class _ModulesPageState extends State<ModulesPage>
   }
 
   Widget _catalogTab({required bool bundled}) {
-    final enabled = _canInstall;
-    final installed = {for (final module in _modules ?? const []) module.id};
-    final missing = _missingSources(_store, _repository);
-    final warning = bundled ? '' : _index?.warning ?? '';
+    final enabled = _feed.canInstall;
+    final installed = {
+      for (final module in _feed.modules ?? const []) module.id,
+    };
+    final missing = _missingSources(
+      widget.store,
+      AppScope.of(context).repository,
+    );
+    final warning = bundled ? '' : _feed.index?.warning ?? '';
     final listed = [
-      for (final entry in _index?.entries ?? const <ModuleIndexEntry>[])
+      for (final entry in _feed.index?.entries ?? const <ModuleIndexEntry>[])
         if (entry.bundled == bundled) entry,
     ];
     final entries =
@@ -316,9 +256,9 @@ class _ModulesPageState extends State<ModulesPage>
         );
     return _list([
       if (warning.isNotEmpty) _Note(warning),
-      if (_indexError ?? _error case final error?)
+      if (_feed.indexError ?? _feed.error case final error?)
         _Note(error)
-      else if (_index == null || _modules == null)
+      else if (_feed.index == null || _feed.modules == null)
         const _Loading()
       else if (listed.isEmpty && warning.isEmpty)
         _Note(bundled ? '这个安装包没有内置模块。' : '仓库里还没有模块。')
@@ -335,7 +275,7 @@ class _ModulesPageState extends State<ModulesPage>
   }
 
   Widget _manualTab() {
-    final enabled = _canInstall;
+    final enabled = _feed.canInstall;
     return _list([
       GroupCard(
         children: [
@@ -361,8 +301,9 @@ class _ModulesPageState extends State<ModulesPage>
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([
-      _store.permissionUpdates,
-      _store.settingsUpdates,
+      widget.store.permissionUpdates,
+      widget.store.settingsUpdates,
+      _feed,
     ]),
     builder: (context, _) => Scaffold(
       appBar: AppBar(
@@ -372,9 +313,9 @@ class _ModulesPageState extends State<ModulesPage>
             BarButton(
               icon: Icons.refresh_rounded,
               tooltip: '刷新',
-              onPressed: _index == null && _indexError == null
+              onPressed: _feed.index == null && _feed.indexError == null
                   ? null
-                  : _loadIndex,
+                  : _feed.loadIndex,
             ),
           const SizedBox(width: 8),
         ],
@@ -406,7 +347,7 @@ class _ModulesPageState extends State<ModulesPage>
       ),
       body: Column(
         children: [
-          if (_busy) const LinearProgressIndicator(),
+          if (_feed.busy) const LinearProgressIndicator(),
           Expanded(
             child: TabBarView(
               controller: _tabs,

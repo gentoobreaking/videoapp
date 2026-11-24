@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../local_profiles.dart';
 import '../../local_store.dart';
 import '../../models.dart';
+import '../../users_feed.dart';
 import '../settings/settings_rows.dart';
 import '../settings/settings_sections.dart';
 import '../theme/motion.dart';
@@ -45,97 +46,100 @@ class UsersView extends StatelessWidget {
   final LocalStore store;
   final OpenSubpage open;
 
-  void _edit([LocalProfile? profile]) => open(
-    profile == null
-        ? '添加用户'
-        : profile.admin
-        ? '编辑管理员'
-        : '编辑用户',
-    (_) => UserEditor(store: store, profile: profile),
-  );
-
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: store.permissionUpdates,
-    builder: (context, _) {
-      final admin = store.profile.admin;
-      final profiles = store.profiles;
-      final adminProtected = profiles.firstWhere((p) => p.admin).protected;
-      final full = profiles.length >= maxProfiles;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: 12,
-        children: [
-          SettingsCard(
-            children: [
-              for (final profile in profiles)
-                ProfileTile(
-                  key: ValueKey('profile-${profile.id}'),
-                  profile: profile,
-                  subtitle: profileSummary(profile),
-                  current: profile.id == store.profile.id,
-                  onTap: profile.id == store.profile.id
-                      ? null
-                      : () => switchToProfile(context, store, profile),
-                  trailing: admin
-                      ? FocusRing(
-                          radius: 20,
-                          child: IconButton(
-                            tooltip: '编辑 ${profile.name}',
-                            onPressed: () => _edit(profile),
-                            icon: const Icon(Icons.edit_outlined),
-                          ),
+  Widget build(BuildContext context) {
+    final feed = UsersFeed(store);
+    return ListenableBuilder(
+      listenable: feed,
+      builder: (context, _) {
+        final admin = feed.admin;
+        final profiles = feed.profiles;
+        final adminProtected = feed.adminProtected;
+        final full = feed.full;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 12,
+          children: [
+            SettingsCard(
+              children: [
+                for (final profile in profiles)
+                  ProfileTile(
+                    key: ValueKey('profile-${profile.id}'),
+                    profile: profile,
+                    subtitle: profileSummary(profile),
+                    current: profile.id == store.profile.id,
+                    onTap: profile.id == store.profile.id
+                        ? null
+                        : () => switchToProfile(context, store, profile),
+                    trailing: admin
+                        ? FocusRing(
+                            radius: 20,
+                            child: IconButton(
+                              tooltip: '编辑 ${profile.name}',
+                              onPressed: () => open(
+                                profile.admin ? '编辑管理员' : '编辑用户',
+                                (_) =>
+                                    UserEditor(store: store, profile: profile),
+                              ),
+                              icon: const Icon(Icons.edit_outlined),
+                            ),
+                          )
+                        : null,
+                  ),
+                if (admin)
+                  SettingsTile(
+                    title: '添加用户',
+                    subtitle: !adminProtected
+                        ? '需要先为管理员设置密码'
+                        : full
+                        ? '最多 $maxProfiles 个用户'
+                        : null,
+                    icon: Icons.person_add_alt_rounded,
+                    enabled: adminProtected && !full,
+                    onTap: () => open(
+                      '添加用户',
+                      (_) => UserEditor(store: store, profile: null),
+                    ),
+                  ),
+              ],
+            ),
+            SettingsCard(
+              children: [
+                SwitchTile(
+                  title: '启动时需要登录',
+                  subtitle: admin ? '每次打开应用先选择用户并输入密码' : adminOnly,
+                  value: store.forceLogin,
+                  onChanged: admin
+                      ? (value) => saveSetting(
+                          context,
+                          () => store.setForceLogin(value),
                         )
                       : null,
                 ),
-              if (admin)
-                SettingsTile(
-                  title: '添加用户',
-                  subtitle: !adminProtected
-                      ? '需要先为管理员设置密码'
-                      : full
-                      ? '最多 $maxProfiles 个用户'
-                      : null,
-                  icon: Icons.person_add_alt_rounded,
-                  enabled: adminProtected && !full,
-                  onTap: _edit,
+                if (store.profile.protected)
+                  SettingsTile(
+                    title: '锁定当前用户',
+                    subtitle: '回到登录页，再次使用需要输入密码',
+                    trailing: const Icon(Icons.lock_outline_rounded),
+                    onTap: () => store.lock(),
+                  ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '各用户的追剧和观看记录独立保存，下载文件由本机共享。轻点用户即可切换，有密码的用户需要先验证。',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.6,
                 ),
-            ],
-          ),
-          SettingsCard(
-            children: [
-              SwitchTile(
-                title: '启动时需要登录',
-                subtitle: admin ? '每次打开应用先选择用户并输入密码' : adminOnly,
-                value: store.forceLogin,
-                onChanged: admin
-                    ? (value) =>
-                          saveSetting(context, () => store.setForceLogin(value))
-                    : null,
-              ),
-              if (store.profile.protected)
-                SettingsTile(
-                  title: '锁定当前用户',
-                  subtitle: '回到登录页，再次使用需要输入密码',
-                  trailing: const Icon(Icons.lock_outline_rounded),
-                  onTap: store.lock,
-                ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              '各用户的追剧和观看记录独立保存，下载文件由本机共享。轻点用户即可切换，有密码的用户需要先验证。',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                height: 1.6,
               ),
             ),
-          ),
-        ],
-      );
-    },
-  );
+          ],
+        );
+      },
+    );
+  }
 }
 
 class ProfileTile extends StatelessWidget {

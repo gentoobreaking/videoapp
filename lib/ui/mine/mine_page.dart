@@ -5,6 +5,7 @@ import '../../download_converter.dart';
 import '../../merge_queue.dart';
 import '../../download_overview.dart';
 import '../../local_store.dart';
+import '../../mine_feed.dart';
 import '../../models.dart';
 import '../app_scope.dart';
 import '../detail/detail_page.dart';
@@ -36,23 +37,27 @@ class MinePage extends StatelessWidget {
   final VoidCallback onExitUp;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      bottom: false,
-      child: ListenableBuilder(
-        listenable: Listenable.merge([
-          store.permissionUpdates,
-          store.settingsUpdates,
-          store.historyUpdates,
-        ]),
-        builder: (context, _) => switch (AppScope.formFactorOf(context)) {
-          FormFactor.phone => _phone(context),
-          FormFactor.pad || FormFactor.window => _wide(context),
-          FormFactor.television => _television(context),
-        },
+  Widget build(BuildContext context) {
+    final feed = MineFeed(AppScope.of(context).repository, store, downloads);
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: ListenableBuilder(
+          listenable: Listenable.merge([
+            store.permissionUpdates,
+            store.settingsUpdates,
+            store.historyUpdates,
+            feed,
+          ]),
+          builder: (context, _) => switch (AppScope.formFactorOf(context)) {
+            FormFactor.phone => _phone(context, feed),
+            FormFactor.pad || FormFactor.window => _wide(context, feed),
+            FormFactor.television => _television(context, feed),
+          },
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   void _openHistory(BuildContext context) =>
       openPage<void>(context, (_) => HistoryPage(store: store));
@@ -67,8 +72,8 @@ class MinePage extends StatelessWidget {
     ),
   );
 
-  Widget _userCard(BuildContext context) =>
-      _UserCard(store: store, onTap: () => openUsers(context, store));
+  Widget _userCard(BuildContext context, MineFeed feed) =>
+      _UserCard(feed: feed, onTap: () => openUsers(context, store));
 
   void _openModules(BuildContext context) =>
       openPage<void>(context, (_) => ModulesPage(store: store));
@@ -76,17 +81,17 @@ class MinePage extends StatelessWidget {
   void _openSettings(BuildContext context) =>
       openPage<void>(context, (_) => SettingsPage(store: store));
 
-  Widget _entries(BuildContext context) => Column(
+  Widget _entries(BuildContext context, MineFeed feed) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     spacing: 12,
     children: [
-      if (store.canDownload)
+      if (feed.canDownload)
         _Entry(
           icon: Icons.download_rounded,
           title: '下载',
           onTap: () => _openDownloads(context),
         ),
-      if (store.profile.admin)
+      if (feed.profile.admin)
         _Entry(
           icon: Icons.extension_outlined,
           title: '模块',
@@ -124,16 +129,16 @@ class MinePage extends StatelessWidget {
     );
   }
 
-  Widget _phone(BuildContext context) {
+  Widget _phone(BuildContext context, MineFeed feed) {
     const width = 100.0;
-    final history = store.history.take(20).toList();
+    final history = feed.history.take(20).toList();
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         const PageHeader(title: '我的'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _userCard(context),
+          child: _userCard(context, feed),
         ),
         SectionHeader(
           title: '最近观看',
@@ -161,13 +166,13 @@ class MinePage extends StatelessWidget {
         const SizedBox(height: 16),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _entries(context),
+          child: _entries(context, feed),
         ),
       ],
     );
   }
 
-  Widget _wide(BuildContext context) {
+  Widget _wide(BuildContext context, MineFeed feed) {
     final desktop = AppScope.formFactorOf(context) == FormFactor.window;
     final side = desktop ? 360.0 : 340.0;
     final gap = desktop ? 32.0 : 28.0;
@@ -179,9 +184,9 @@ class MinePage extends StatelessWidget {
         final summary = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _userCard(context),
+            _userCard(context, feed),
             const SizedBox(height: 16),
-            _entries(context),
+            _entries(context, feed),
           ],
         );
         final recent = Column(
@@ -198,6 +203,7 @@ class MinePage extends StatelessWidget {
               context,
               split ? width - side - gap : width,
               desktop: desktop,
+              feed: feed,
             ),
           ],
         );
@@ -228,7 +234,7 @@ class MinePage extends StatelessWidget {
     );
   }
 
-  Widget _television(BuildContext context) {
+  Widget _television(BuildContext context, MineFeed feed) {
     const columns = 7;
     const gap = 20.0;
     const padding = EdgeInsets.fromLTRB(
@@ -237,7 +243,7 @@ class MinePage extends StatelessWidget {
       televisionInset,
       27,
     );
-    final history = store.history;
+    final history = feed.history;
     final recent = history.take(columns - 1).toList();
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -302,13 +308,13 @@ class MinePage extends StatelessWidget {
                         icon: Icons.person_rounded,
                         primary: true,
                         focusNode: recent.isEmpty ? entryFocus : null,
-                        title: store.profile.name,
+                        title: feed.profile.name,
                         subtitle:
-                            '${store.profile.admin ? '管理员' : '普通用户'} · 切换用户',
+                            '${feed.profile.admin ? '管理员' : '普通用户'} · 切换用户',
                         onTap: () => openUsers(context, store),
                       ),
                     ),
-                    if (store.canDownload)
+                    if (feed.canDownload)
                       Expanded(
                         child: ListenableBuilder(
                           listenable: downloads,
@@ -322,7 +328,7 @@ class MinePage extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (store.profile.admin)
+                    if (feed.profile.admin)
                       Expanded(
                         child: _TelevisionEntry(
                           icon: Icons.extension_outlined,
@@ -369,6 +375,7 @@ class MinePage extends StatelessWidget {
     BuildContext context,
     double width, {
     required bool desktop,
+    required MineFeed feed,
   }) {
     final minimum = desktop ? 140.0 : 120.0;
     final columnGap = desktop ? 18.0 : 16.0;
@@ -378,7 +385,7 @@ class MinePage extends StatelessWidget {
       99,
     );
     final tile = (width - columnGap * (columns - 1)) / columns;
-    final history = store.history.take(columns * 2).toList();
+    final history = feed.history.take(columns * 2).toList();
     if (history.isEmpty) return const _EmptyHistory(height: 240);
     return Column(
       spacing: rowGap,
@@ -402,14 +409,14 @@ class MinePage extends StatelessWidget {
 }
 
 class _UserCard extends StatelessWidget {
-  const _UserCard({required this.store, required this.onTap});
-  final LocalStore store;
+  const _UserCard({required this.feed, required this.onTap});
+  final MineFeed feed;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final profile = store.profile;
+    final profile = feed.profile;
     return FocusRing(
       radius: 20,
       child: Material(
