@@ -11,8 +11,6 @@ REPO="Xsummer/hongguo"
 STATE_FILE="/tmp/hongguo_last_release.txt"
 TG_API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
 
-TELEGRAM_CHAT_ID=6748222184
-
 # 取得最新 release（含 pre-release）
 latest=$(gh release list -R "$REPO" --limit 1 --json tagName,name,publishedAt,isPrerelease --jq '
   .[0] | "\(.tagName)\t\(.name)\t\(.publishedAt)\t\(.isPrerelease)"

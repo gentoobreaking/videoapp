@@ -11,8 +11,6 @@ REPO="Xsummer/hongguo"
 STATE_FILE="/tmp/hongguo_last_commit.txt"
 TG_API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
 
-TELEGRAM_CHAT_ID=6748222184
-
 # 取得最新 commit
 latest_sha=$(gh api repos/$REPO/commits --jq '.[0].sha')
 latest_msg=$(gh api repos/$REPO/commits --jq '.[0].commit.message')

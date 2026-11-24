@@ -9,7 +9,6 @@ set -euo pipefail
 #REPO="guoapp-modules/hongguo"
 REPO="Xsummer/hongguo"
 TG_API="https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
-TELEGRAM_CHAT_ID=6748222184
 
 # 狀態檔
 RELEASE_STATE="/tmp/hongguo_last_release.txt"

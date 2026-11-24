@@ -25,7 +25,7 @@ curl "https://api.telegram.org/bot<BOT_TOKEN>/getUpdates" | jq '.result[].messag
 ### 2. 設定環境變數
 ```bash
 export TELEGRAM_BOT_TOKEN="你的_BOT_TOKEN"
-export TELEGRAM_CHAT_ID="你的_CHAT_ID"  # 例如 6748222184
+export TELEGRAM_CHAT_ID="你的_CHAT_ID"
 ```
 
 ### 3. 測試跑一次
@@ -72,7 +72,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 Environment=TELEGRAM_BOT_TOKEN=你的_BOT_TOKEN
-Environment=TELEGRAM_CHAT_ID=6748222184
+Environment=TELEGRAM_CHAT_ID=你的_CHAT_ID
 ExecStart=/usr/local/bin/monitor_hongguo_all.sh
 EOF
 
