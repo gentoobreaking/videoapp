@@ -105,7 +105,15 @@ func (engine *nativeEngine) runDeleteAllData(root string) {
 	defer func() { engine.finishDataJob("erase", "", "", "", leftover) }()
 	manager := engine.downloads
 	manager.workers.Wait()
-	if filepath.IsAbs(root) && filepath.Dir(root) != root {
+
+	// Verify root is the expected downloads directory
+	manager.mu.Lock()
+	expectedRoot := manager.root
+	manager.mu.Unlock()
+
+	if !filepath.IsAbs(root) || filepath.Dir(root) == root || root != expectedRoot {
+		leftover = append(leftover, "删除目标路径不匹配预期下载目录，已跳过")
+	} else {
 		if err := os.RemoveAll(root); err != nil {
 			leftover = append(leftover, root+"："+err.Error())
 		}

@@ -10,9 +10,35 @@ import (
 
 func (manager *nativeDownloads) jobDirectory(job nativeDownloadJob) string {
 	if job.Folder != "" {
+		// Validate Folder to prevent path traversal
+		if !isSafePath(job.Folder) {
+			return filepath.Join(manager.root, job.ID)
+		}
 		return filepath.Join(manager.root, filepath.FromSlash(job.Folder))
 	}
 	return filepath.Join(manager.root, job.ID)
+}
+
+// isSafePath checks if a path is safe (no path traversal)
+func isSafePath(p string) bool {
+	if p == "" {
+		return false
+	}
+	clean := filepath.Clean(p)
+	// Must not start with .. or be absolute
+	if strings.HasPrefix(clean, "..") || filepath.IsAbs(clean) {
+		return false
+	}
+	// Must not contain path separators that could escape
+	if strings.ContainsAny(clean, `/\`) {
+		// Allow subdirectories but validate each component
+		for _, part := range strings.Split(clean, "/") {
+			if part == ".." || part == "." || part == "" {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (manager *nativeDownloads) localFilesValid(record nativeDownloadRecord) bool {
