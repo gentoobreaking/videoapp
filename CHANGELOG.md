@@ -2,6 +2,14 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.9+143
+
+### 更新内容
+
+- TLS 客戶端增強：新增「跟隨重定向」開關、完整瀏覽器 Header（sec-ch-ua-full-version-list、zstd 等）、預熱 Cookie 獲取 cf_clearance、HTTP/2 連接池優化，解決 Cloudflare 403 驗證問題
+- 修復 CI 靜態分析失敗（忽略 Flutter 3.47+ material.dart 棄用警告）
+- 修復 GitHub Actions workflow 語法錯誤（移除 if 條件中錯誤的 \${{ }}）
+
 ## 2.0.9+142
 
 ### 更新内容
