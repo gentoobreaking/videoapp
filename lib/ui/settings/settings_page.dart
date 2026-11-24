@@ -248,7 +248,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _phone(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('设置')),
     body: ListenableBuilder(
-      listenable: widget.store,
+      listenable: Listenable.merge([
+        widget.store.permissionUpdates,
+        widget.store.settingsUpdates,
+      ]),
       builder: (context, _) => ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [

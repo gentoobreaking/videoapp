@@ -40,7 +40,11 @@ class MinePage extends StatelessWidget {
     body: SafeArea(
       bottom: false,
       child: ListenableBuilder(
-        listenable: store,
+        listenable: Listenable.merge([
+          store.permissionUpdates,
+          store.settingsUpdates,
+          store.historyUpdates,
+        ]),
         builder: (context, _) => switch (AppScope.formFactorOf(context)) {
           FormFactor.phone => _phone(context),
           FormFactor.pad || FormFactor.window => _wide(context),

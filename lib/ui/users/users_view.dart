@@ -56,7 +56,7 @@ class UsersView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: store,
+    listenable: store.permissionUpdates,
     builder: (context, _) {
       final admin = store.profile.admin;
       final profiles = store.profiles;

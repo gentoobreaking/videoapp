@@ -360,7 +360,10 @@ class _ModulesPageState extends State<ModulesPage>
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: _store,
+    listenable: Listenable.merge([
+      _store.permissionUpdates,
+      _store.settingsUpdates,
+    ]),
     builder: (context, _) => Scaffold(
       appBar: AppBar(
         title: const Text('模块'),
