@@ -2,6 +2,14 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.9+142
+
+### 更新内容
+
+- Go 原生層 HTTP 客戶端 TLS 指纹升級至 Chrome 152，規避 Cloudflare 對舊指纹的識別（开发快照，需在对应平台实机测试）
+- 移除 WithDisableHttp3，允許 HTTP/3 正常協商，更貼近真實 Chrome 行為（开发快照，需在对应平台实机测试）
+- 同步升級 sec-ch-ua 與 user-agent 請求頭版本至 Chrome/152（开发快照，需在对应平台实机测试）
+
 ## 2.0.9+141
 
 ### 更新内容
