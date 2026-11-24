@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (stream *nativeStreamServer) cencRange(ctx context.Context, session *nativeStreamSession, address string, start, end int64) (*http.Response, int64, error) {
@@ -44,17 +45,47 @@ func (stream *nativeStreamServer) cencBytes(ctx context.Context, session *native
 }
 
 func (stream *nativeStreamServer) cencLayout(ctx context.Context, session *nativeStreamSession, address string) (*cencLayout, error) {
+	// Fast path: check if layout is already computed
 	session.cencMu.Lock()
-	defer session.cencMu.Unlock()
 	if session.cenc != nil {
-		return session.cenc, nil
+		layout := session.cenc
+		session.cencMu.Unlock()
+		return layout, nil
 	}
+	// If another goroutine is already computing, wait for it
+	if session.cencComputing {
+		session.cencMu.Unlock()
+		// Wait for the computation to complete
+		for {
+			time.Sleep(10 * time.Millisecond)
+			session.cencMu.Lock()
+			if session.cenc != nil {
+				layout := session.cenc
+				session.cencMu.Unlock()
+				return layout, nil
+			}
+			if !session.cencComputing {
+				// Computation failed, we'll do it
+				break
+			}
+			session.cencMu.Unlock()
+		}
+	}
+	// Mark as computing
+	session.cencComputing = true
+	session.cencMu.Unlock()
+
+	// Compute layout without holding the lock
 	const window = 1 << 20
 	position, origin := int64(0), int64(0)
 	data, total, err := stream.cencBytes(ctx, session, address, 0, window-1)
 	if err != nil {
+		session.cencMu.Lock()
+		session.cencComputing = false
+		session.cencMu.Unlock()
 		return nil, err
 	}
+	var layout *cencLayout
 	for range 64 {
 		if position+16 > origin+int64(len(data)) {
 			if position+16 > total {
@@ -62,7 +93,7 @@ func (stream *nativeStreamServer) cencLayout(ctx context.Context, session *nativ
 			}
 			origin = position
 			if data, _, err = stream.cencBytes(ctx, session, address, origin, origin+window-1); err != nil {
-				return nil, err
+				break
 			}
 		}
 		if position+16 > origin+int64(len(data)) {
@@ -92,18 +123,29 @@ func (stream *nativeStreamServer) cencLayout(ctx context.Context, session *nativ
 		if position+size > origin+int64(len(data)) {
 			origin = position
 			if data, _, err = stream.cencBytes(ctx, session, address, position, position+size-1); err != nil {
-				return nil, err
+				break
 			}
 		}
 		if position+size > origin+int64(len(data)) {
 			break
 		}
 		moov := append([]byte{}, data[position-origin:position-origin+size]...)
-		layout, err := newCENCLayout(moov, position, total, session.cencKey)
+		layout, err = newCENCLayout(moov, position, total, session.cencKey)
 		if err != nil {
-			return nil, err
+			break
 		}
+		break
+	}
+
+	// Store result
+	session.cencMu.Lock()
+	session.cencComputing = false
+	if layout != nil {
 		session.cenc = layout
+	}
+	session.cencMu.Unlock()
+
+	if layout != nil {
 		return layout, nil
 	}
 	return nil, errCENCLayout

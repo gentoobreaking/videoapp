@@ -211,6 +211,33 @@ func (manager *nativeDownloads) saveLocked() error {
 	return nil
 }
 
+// saveAsync saves downloads index to disk without holding manager.mu.
+// It prepares the data under the lock, then releases the lock for I/O.
+func (manager *nativeDownloads) saveAsync() {
+	manager.mu.Lock()
+	if manager.loadErr != nil {
+		manager.mu.Unlock()
+		return
+	}
+	records := make([]nativeDownloadRecord, 0, len(manager.jobs))
+	for _, job := range manager.jobs {
+		records = append(records, *job)
+	}
+	sort.Slice(records, func(i, j int) bool { return records[i].Created < records[j].Created })
+	data, err := json.Marshal(records)
+	manager.mu.Unlock()
+	if err != nil {
+		return
+	}
+	if len(data) > 32<<20 {
+		return
+	}
+	_ = nativeDownloadWrite(filepath.Join(manager.root, "index.json"), data)
+	manager.mu.Lock()
+	manager.lastSaved = time.Now()
+	manager.mu.Unlock()
+}
+
 func (manager *nativeDownloads) snapshot() ([]nativeDownloadJob, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
@@ -464,14 +491,16 @@ func (manager *nativeDownloads) scheduleLocked() {
 
 func (manager *nativeDownloads) progress(id string, downloaded, total int64, progress float64) {
 	manager.mu.Lock()
-	defer manager.mu.Unlock()
 	job := manager.jobs[id]
 	if job == nil || job.State != "downloading" {
+		manager.mu.Unlock()
 		return
 	}
 	job.Bytes, job.Total, job.Progress = downloaded, total, max(0, min(progress, 1))
-	if time.Since(manager.lastSaved) >= time.Second {
-		_ = manager.saveLocked()
+	needSave := time.Since(manager.lastSaved) >= time.Second
+	manager.mu.Unlock()
+	if needSave {
+		manager.saveAsync()
 	}
 }
 
