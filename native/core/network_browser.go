@@ -22,21 +22,26 @@ type browserHTTPClient interface {
 }
 
 type huangguoBrowserTransport struct {
-	base      http.RoundTripper
-	router    *proxyRouter
-	baseURL   func(string) string
-	insecure  bool
-	record    func(diagnosticEvent)
-	mu        sync.Mutex
-	clients   map[string]browserHTTPClient
-	newClient func(string) (browserHTTPClient, error)
+	base               http.RoundTripper
+	router             *proxyRouter
+	baseURL            func(string) string
+	insecure           bool
+	record             func(diagnosticEvent)
+	followRedirects    bool
+	mu                 sync.Mutex
+	clients            map[string]browserHTTPClient
+	newClient          func(string) (browserHTTPClient, error)
 }
 
 func newHuangguoBrowserTransport(base http.RoundTripper, downloader *Downloader) *huangguoBrowserTransport {
 	transport := &huangguoBrowserTransport{
-		base: base, router: downloader.proxyRouter, baseURL: downloader.providerBaseURL,
-		insecure: downloader.cfg.InsecureTLS, record: downloader.recordDiagnostic,
-		clients: make(map[string]browserHTTPClient),
+		base:            base,
+		router:          downloader.proxyRouter,
+		baseURL:         downloader.providerBaseURL,
+		insecure:        downloader.cfg.InsecureTLS,
+		record:          downloader.recordDiagnostic,
+		followRedirects: downloader.cfg.BrowserFollowRedirects,
+		clients:         make(map[string]browserHTTPClient),
 	}
 	transport.newClient = transport.createClient
 	return transport
@@ -72,7 +77,6 @@ func (transport *huangguoBrowserTransport) createClient(proxy string) (browserHT
 	options := []tlsclient.HttpClientOption{
 		tlsclient.WithClientProfile(profiles.Chrome_152),
 		tlsclient.WithRandomTLSExtensionOrder(),
-		tlsclient.WithNotFollowRedirects(),
 		tlsclient.WithTimeoutSeconds(45),
 		tlsclient.WithProxyUrl(proxy),
 		tlsclient.WithCookieJar(tlsclient.NewCookieJar()),
@@ -80,6 +84,9 @@ func (transport *huangguoBrowserTransport) createClient(proxy string) (browserHT
 			IdleConnTimeout: &idleTimeout, MaxIdleConns: 8, MaxIdleConnsPerHost: 4,
 			MaxResponseHeaderBytes: 1 << 20,
 		}),
+	}
+	if !transport.followRedirects {
+		options = append(options, tlsclient.WithNotFollowRedirects())
 	}
 	if transport.insecure {
 		options = append(options, tlsclient.WithInsecureSkipVerify())
@@ -114,23 +121,44 @@ func (transport *huangguoBrowserTransport) client(request *http.Request) (browse
 		}
 	}
 	transport.clients[key] = client
+
+	// 預熱 Cookie：首次建立 client 時先 GET / 獲取 cf_clearance 等 cookie
+	go func(c browserHTTPClient, host string) {
+		warmupURL := request.URL.Scheme + "://" + host + "/"
+		warmupReq, _ := fhttp.NewRequestWithContext(request.Context(), "GET", warmupURL, nil)
+		// 轉換為 *http.Request 以便複用 huangguoBrowserHeaders
+		httpReq, _ := http.NewRequestWithContext(request.Context(), "GET", warmupURL, nil)
+		httpReq.Header = make(http.Header)
+		for k, v := range request.Header {
+			httpReq.Header[k] = v
+		}
+		warmupReq.Header = huangguoBrowserHeaders(httpReq)
+		if resp, err := c.Do(warmupReq); err == nil && resp != nil {
+			resp.Body.Close()
+		}
+	}(client, request.URL.Host)
+
 	return client, nil
 }
 
 func huangguoBrowserHeaders(request *http.Request) fhttp.Header {
 	headers := fhttp.Header{
-		"sec-ch-ua":                 {`"Chromium";v="152", "Google Chrome";v="152", "Not_A Brand";v="24"`},
-		"sec-ch-ua-mobile":          {"?0"},
-		"sec-ch-ua-platform":        {`"macOS"`},
-		"upgrade-insecure-requests": {"1"},
-		"user-agent":                {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"},
-		"accept":                    {"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"},
-		"sec-fetch-site":            {"same-origin"},
-		"sec-fetch-mode":            {"navigate"},
-		"sec-fetch-user":            {"?1"},
-		"sec-fetch-dest":            {"document"},
-		"accept-language":           {"zh-CN,zh;q=0.9"},
-		fhttp.HeaderOrderKey:        {"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "upgrade-insecure-requests", "user-agent", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "cookie"},
+		"sec-ch-ua":                      {`"Chromium";v="152", "Google Chrome";v="152", "Not_A Brand";v="24"`},
+		"sec-ch-ua-mobile":               {"?0"},
+		"sec-ch-ua-platform":             {`"macOS"`},
+		"sec-ch-ua-platform-version":     {`"15.0"`},
+		"sec-ch-ua-model":                {""},
+		"sec-ch-ua-full-version-list":    {`"Chromium";v="152.0.0.0", "Google Chrome";v="152.0.0.0", "Not_A Brand";v="24.0.0.0"`},
+		"upgrade-insecure-requests":      {"1"},
+		"user-agent":                     {"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"},
+		"accept":                         {"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"},
+		"sec-fetch-site":                 {"same-origin"},
+		"sec-fetch-mode":                 {"navigate"},
+		"sec-fetch-user":                 {"?1"},
+		"sec-fetch-dest":                 {"document"},
+		"accept-language":                {"zh-CN,zh;q=0.9,en;q=0.8"},
+		"accept-encoding":                {"gzip, deflate, br, zstd"},
+		fhttp.HeaderOrderKey:             {"sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "sec-ch-ua-platform-version", "sec-ch-ua-model", "sec-ch-ua-full-version-list", "upgrade-insecure-requests", "user-agent", "accept", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "cookie"},
 	}
 	if mode := request.Header.Get("Sec-Fetch-Mode"); mode != "" && mode != "navigate" {
 		headers["accept"] = []string{FirstNonEmpty(request.Header.Get("Accept"), "*/*")}

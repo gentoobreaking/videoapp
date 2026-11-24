@@ -15,12 +15,13 @@ import (
 )
 
 type Config struct {
-	dataDir         string
-	cacheDir        string
-	MaxPagesPerSort int
-	PageSize        int
-	Retries         int
-	InsecureTLS     bool
+	dataDir                 string
+	cacheDir                string
+	MaxPagesPerSort         int
+	PageSize                int
+	Retries                 int
+	InsecureTLS             bool
+	BrowserFollowRedirects  bool
 }
 
 type Downloader struct {
@@ -41,9 +42,10 @@ type Downloader struct {
 	direct            *http.Client
 	diagnostics       *diagnosticLog
 	ModuleAllowlistStrict bool
+	BrowserFollowRedirects  bool
 }
 
-func DefaultConfig() Config { return Config{MaxPagesPerSort: 50, PageSize: 30, Retries: 2} }
+func DefaultConfig() Config { return Config{MaxPagesPerSort: 50, PageSize: 30, Retries: 2, BrowserFollowRedirects: false} }
 
 type LibraryDrama struct {
 	MetadataSchema int      `json:"metadataSchema"`

@@ -16,29 +16,30 @@ class ResourceSettings {
     this.prefetchLimit = 4194304,
     this.downloadBySource = false,
     this.moduleAllowlistStrict = true,
+    this.browserFollowRedirects = false,
     this.warning = '',
     this.systemProxyStatus = '',
   });
   final String proxyMode, proxyUrl, warning, systemProxyStatus;
   final int catalogConcurrency, downloadConcurrency, downloadSegmentConcurrency;
   final int prefetchLimit;
-  final bool downloadBySource, moduleAllowlistStrict;
+  final bool downloadBySource, moduleAllowlistStrict, browserFollowRedirects;
 
-  factory ResourceSettings.fromJson(Map<String, dynamic> data) =>
-      ResourceSettings(
-        proxyMode: data['proxyMode'] as String? ?? 'auto',
-        proxyUrl: data['proxyUrl'] as String? ?? '',
-        catalogConcurrency: intValue(data['catalogConcurrency']),
-        downloadConcurrency: intValue(data['downloadConcurrency']),
-        downloadSegmentConcurrency: intValue(
-          data['downloadSegmentConcurrency'],
-        ),
-        prefetchLimit: intValue(data['prefetchLimit']),
-        downloadBySource: data['downloadBySource'] == true,
-        moduleAllowlistStrict: data['moduleAllowlistStrict'] as bool? ?? true,
-        warning: data['warning'] as String? ?? '',
-        systemProxyStatus: data['systemProxyStatus'] as String? ?? '',
-      );
+  factory ResourceSettings.fromJson(
+    Map<String, dynamic> data,
+  ) => ResourceSettings(
+    proxyMode: data['proxyMode'] as String? ?? 'auto',
+    proxyUrl: data['proxyUrl'] as String? ?? '',
+    catalogConcurrency: intValue(data['catalogConcurrency']),
+    downloadConcurrency: intValue(data['downloadConcurrency']),
+    downloadSegmentConcurrency: intValue(data['downloadSegmentConcurrency']),
+    prefetchLimit: intValue(data['prefetchLimit']),
+    downloadBySource: data['downloadBySource'] == true,
+    moduleAllowlistStrict: data['moduleAllowlistStrict'] as bool? ?? true,
+    browserFollowRedirects: data['browserFollowRedirects'] as bool? ?? false,
+    warning: data['warning'] as String? ?? '',
+    systemProxyStatus: data['systemProxyStatus'] as String? ?? '',
+  );
 
   ResourceSettings copyWith({
     String? proxyMode,
@@ -49,6 +50,7 @@ class ResourceSettings {
     int? prefetchLimit,
     bool? downloadBySource,
     bool? moduleAllowlistStrict,
+    bool? browserFollowRedirects,
   }) => ResourceSettings(
     proxyMode: proxyMode ?? this.proxyMode,
     proxyUrl: proxyUrl ?? this.proxyUrl,
@@ -59,6 +61,8 @@ class ResourceSettings {
     prefetchLimit: prefetchLimit ?? this.prefetchLimit,
     downloadBySource: downloadBySource ?? this.downloadBySource,
     moduleAllowlistStrict: moduleAllowlistStrict ?? this.moduleAllowlistStrict,
+    browserFollowRedirects:
+        browserFollowRedirects ?? this.browserFollowRedirects,
     warning: warning,
     systemProxyStatus: systemProxyStatus,
   );
@@ -72,6 +76,7 @@ class ResourceSettings {
     'prefetchLimit': prefetchLimit,
     'downloadBySource': downloadBySource,
     'moduleAllowlistStrict': moduleAllowlistStrict,
+    'browserFollowRedirects': browserFollowRedirects,
   };
 }
 

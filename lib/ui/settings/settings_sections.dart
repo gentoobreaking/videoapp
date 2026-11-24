@@ -668,6 +668,20 @@ class SettingsSection extends StatelessWidget {
                     )
                   : null,
             ),
+          if (settings != null)
+            SwitchTile(
+              title: 'TLS 客户端跟随重定向',
+              subtitle:
+                  '开启后浏览器指纹客户端会自动跟随 301/302 重定向（解决 Cloudflare 等站点验证需跟随重定向的问题）；关闭则不跟随',
+              value: settings.browserFollowRedirects,
+              enabled: editable && admin,
+              onChanged: editable && admin
+                  ? (value) => _saveResource(
+                      context,
+                      settings.copyWith(browserFollowRedirects: value),
+                    )
+                  : null,
+            ),
         ],
       ),
     ];

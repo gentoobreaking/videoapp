@@ -22,6 +22,7 @@ type nativeResourceSettings struct {
 	PrefetchLimit              int    `json:"prefetchLimit"`
 	DownloadBySource           bool   `json:"downloadBySource"`
 	ModuleAllowlistStrict      bool   `json:"moduleAllowlistStrict"`
+	BrowserFollowRedirects     bool   `json:"browserFollowRedirects"`
 	Warning                    string `json:"warning,omitempty"`
 	SystemProxyStatus          string `json:"systemProxyStatus,omitempty"`
 }
@@ -29,7 +30,7 @@ type nativeResourceSettings struct {
 func defaultResourceSettings() nativeResourceSettings {
 	return nativeResourceSettings{ProxyMode: "auto", CatalogConcurrency: 3, DownloadConcurrency: 2,
 		DownloadSegmentConcurrency: nativeDownloadSegmentConcurrency, PrefetchLimit: nativePreloadLimit,
-		ModuleAllowlistStrict: true}
+		ModuleAllowlistStrict: true, BrowserFollowRedirects: false}
 }
 
 // normalizeResourceSettings 兼容缺少新字段的旧设置文件。
@@ -170,6 +171,7 @@ func (engine *nativeEngine) applyResourceSettings(settings nativeResourceSetting
 		engine.downloads.mu.Unlock()
 	}
 	engine.downloader.ModuleAllowlistStrict = settings.ModuleAllowlistStrict
+	engine.downloader.BrowserFollowRedirects = settings.BrowserFollowRedirects
 }
 
 func (engine *nativeEngine) saveResourceSettings(settings nativeResourceSettings) (nativeResourceSettings, error) {
