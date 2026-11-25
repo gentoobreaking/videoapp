@@ -591,8 +591,18 @@ class NativeRepository extends AppRepository {
     );
     final htmlUrl = data['html_url'] as String?;
     if (tagName == null || tagName.isEmpty || htmlUrl == null) return null;
-    // 提取語義版本 (X.Y.Z) 進行比對
     // tag 格式：app-v2.0.4-135-android；currentAppVersion() 回傳：2.0.4+135
+    // 僅處理與本機平台相符的 release（tag 尾帶 -android / -ios 等），
+    // 避免 Android 裝置誤判 iOS 發佈版為可用更新。
+    final platformSuffix = Platform.isAndroid
+        ? '-android'
+        : Platform.isIOS
+        ? '-ios'
+        : '';
+    if (platformSuffix.isNotEmpty && !tagName.endsWith(platformSuffix)) {
+      return null;
+    }
+    // 提取語義版本 (X.Y.Z) 進行比對
     final tagSemanticVersion = RegExp(
       r'\d+\.\d+\.\d+',
     ).firstMatch(tagName)?.group(0);
@@ -602,7 +612,7 @@ class NativeRepository extends AppRepository {
     if (tagSemanticVersion == null || tagSemanticVersion.isEmpty) return null;
     if (tagSemanticVersion == currentSemanticVersion) return null;
     // 挑選與本機 ABI 相符的 APK 下載網址
-    final apkUrl = _selectApkUrl(data['assets'], abi);
+    final apkUrl = _selectApkUrl(data['assets'], abi, platformSuffix);
     return AppUpdate(
       version: tagName,
       url: apkUrl ?? htmlUrl,
@@ -610,9 +620,9 @@ class NativeRepository extends AppRepository {
     );
   }
 
-  /// 依 ABI 挑選 release asset 的 APK 下載網址。
+  /// 依 ABI 與平台挑選 release asset 的 APK 下載網址。
   /// asset 檔名格式：videoapp-2.0.4+135-arm64-v8a.apk
-  String? _selectApkUrl(Object? assets, String? abi) {
+  String? _selectApkUrl(Object? assets, String? abi, String platformSuffix) {
     if (assets is! List) return null;
     final apks = <Map<String, dynamic>>[];
     for (final entry in assets) {
@@ -620,7 +630,12 @@ class NativeRepository extends AppRepository {
       final name = (entry['name'] as String?) ?? '';
       final url = entry['browser_download_url'] as String?;
       if (url == null || url.isEmpty || !name.endsWith('.apk')) continue;
-      if (abi != null && abi.isNotEmpty && name.contains(abi)) {
+      // 優先選擇同時包含平台標誌與 ABI 的資產
+      if (platformSuffix.isNotEmpty && abi != null && abi.isNotEmpty) {
+        if (name.contains(platformSuffix) && name.contains(abi)) {
+          return url;
+        }
+      } else if (abi != null && abi.isNotEmpty && name.contains(abi)) {
         return url;
       }
       apks.add(entry.cast<String, dynamic>());
