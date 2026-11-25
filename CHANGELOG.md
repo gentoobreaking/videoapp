@@ -2,6 +2,13 @@
 
 每个版本一节，标题为 `pubspec.yaml` 中的完整版本号。发布工作流会把对应一节写入 GitHub Release 说明。
 
+## 2.0.12+146
+
+### 更新內容
+
+- 更新檢查僅比對同平台 release（-android/-ios 尾綴），避免 Android 裝置誤判 iOS 發佈版
+- _selectApkUrl 同時以平台標誌與 ABI 嚴格匹配資產，防止下載錯誤平台的安裝包
+
 ## 2.0.11+145
 
 ### 更新內容
