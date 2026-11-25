@@ -2732,6 +2732,7 @@ function fetchPlayerMedia(videoId, helper, platform, batch, profile, quick) {
       }
       tried++;
       anyLaneAttempted = true;
+      const [deviceId, , registered] = deviceOf(currentState(), helper);
       const laneStart = Date.now();
       let laneEmpty = null;
       let laneResult = null;
@@ -2745,7 +2746,7 @@ function fetchPlayerMedia(videoId, helper, platform, batch, profile, quick) {
           result = appRequest("POST", paths.videoModel, extra, payload, { helper, playbackLane: laneSpec, signer, profile: prof });
         } catch (error) {
           const signerMs = Date.now() - signerStart;
-          host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} error=${message(error)} ms=${signerMs}`);
+          host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} device=${deviceId} profile=${prof.name} error=${message(error)} ms=${signerMs}`);
           if (error.emptyBody) {
             laneEmpty = error;
           } else {
@@ -2757,13 +2758,14 @@ function fetchPlayerMedia(videoId, helper, platform, batch, profile, quick) {
         laneMarkWarm(key);
         signerMark(key, signer);
         profileMark(prof.name);
+        host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} device=${deviceId} profile=${prof.name} ok ms=${signerMs}`);
         // 只有返回的数据包含所请求的分集才算该车道可用；数据不匹配时快速切下一个 lane
         const probe = nested(result, "data");
         const probeRoot = isRecord(probe["1004"]) ? probe["1004"] : probe;
         if (!isEmptyRecord(nested(probeRoot, videoId))) {
           laneResult = result;
         } else {
-          host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} no-matching-data ms=${signerMs}`);
+          host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} device=${deviceId} profile=${prof.name} no-matching-data ms=${signerMs}`);
         }
         break;
       }
