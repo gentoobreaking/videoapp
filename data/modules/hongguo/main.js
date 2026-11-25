@@ -35,7 +35,7 @@ const fallbackCodecTypes = ["1", "3"];
 const fallbackStreamTypes = ["encrypt", "plain"];
 const mediaCacheMs = 45 * minuteMs;
 const prefetchLimit = 15;
-const appRequestTimeoutMs = 20 * secondMs;
+const appRequestTimeoutMs = 5 * secondMs;
 const searchTimeoutMs = 40 * secondMs;
 const searchPageTimeoutMs = 12 * secondMs;
 const searchSeasonTimeoutMs = 25 * secondMs;
@@ -2387,8 +2387,8 @@ function parseAppDetail(result, seriesId) {
   }
   chapters = stableSort(chapters, (left, right) => left.currentEpisode < right.currentEpisode);
   const total = parseInteger(mapString(detail, "episode_cnt"));
-  if (chapters.length === 0 || total > chapters.length) {
-    throw new Error("红果 App 未返回完整分集，已尝试其他详情入口");
+  if (chapters.length === 0) {
+    throw new Error("红果 App 未返回分集");
   }
   chapters.forEach((chapter, index) => {
     if (chapter.currentEpisode !== index + 1) {
@@ -2443,7 +2443,7 @@ function detail(sourceId) {
     throw new Error("empty hongguo sourceID");
   }
   let title;
-  let chapters;
+  let chapters = [];
   try {
     const entry = appDetail(seriesId);
     title = displayTitle(entry.drama || {});
@@ -2454,7 +2454,9 @@ function detail(sourceId) {
       title = web.title;
       chapters = web.chapters;
     } catch (webError) {
-      throw new Error("App 详情失败: " + message(appError) + "；网页详情失败: " + message(webError));
+      // App 與網頁都無法取得分集：保留空章節清單，避免整個劇庫/播放流程中斷
+      title = "";
+      chapters = [];
     }
   }
   let drama = { id: host.dramaId(sourceId), title, source: host.source };
@@ -2697,7 +2699,6 @@ function fetchPlayerMedia(videoId, helper, platform, batch, profile, quick) {
       ids.push(id);
     }
   }
-  // 两套请求体：默认档位与"高设备档位 + 无 dr_scene"，服务器不同版本的必填项不一致，两种都试
   const payloads = [
     {
       biz_param: {
@@ -2716,73 +2717,88 @@ function fetchPlayerMedia(videoId, helper, platform, batch, profile, quick) {
   ];
   const extra = platform ? { device_platform: platform } : null;
   const lanes = quick === true ? orderedPlaybackLanes().slice(0, 1) : orderedPlaybackLanes();
-  const bodies = quick === true ? payloads.slice(0, 1) : payloads;
+  const bodies = quick === true ? payloads.slice(0, 1) : payloads.slice(0, 1);
   const failures = [];
   let blocked = null;
   let missing = null;
+  let anyLaneAttempted = false;
   for (const payload of bodies) {
-  let tried = 0;
-  let incompatible = 0;
-  for (const laneSpec of lanes) {
-    const key = laneKey(laneSpec.name, platform, prof.name);
-    if (laneState(key) === "cold") {
-      continue;
-    }
-    tried++;
-    let laneEmpty = null;
-    let laneResult = null;
-    let laneIncompatible = null;
-    for (const signer of quick === true ? signerOrder(key).slice(0, 1) : signerOrder(key)) {
-      let result;
-      try {
-        result = appRequest("POST", paths.videoModel, extra, payload, { helper, playbackLane: laneSpec, signer, profile: prof });
-      } catch (error) {
-        if (error.emptyBody) {
-          laneEmpty = error;
-          continue;
-        }
-        failures.push(error);
-        break;
-      }
-      laneMarkWarm(key);
-      signerMark(key, signer);
-      profileMark(prof.name);
-      laneResult = result;
-      break;
-    }
-    if (laneResult !== null) {
-      const entries = nested(laneResult, "data");
-      const root = isRecord(entries["1004"]) ? entries["1004"] : entries;
-      const data = nested(root, videoId);
-      if (isEmptyRecord(data)) {
-        missing = new Error("红果 App 未返回所请求的分集播放信息");
+    let tried = 0;
+    let incompatible = 0;
+    for (const laneSpec of lanes) {
+      const key = laneKey(laneSpec.name, platform, prof.name);
+      if (laneState(key) === "cold") {
         continue;
       }
-      try {
-        const media = mediaFromModel(appVideoModel(data));
-        prefetchMedia(root, ids, videoId);
-        return media;
-      } catch (error) {
-        if (!error.noCompatibleMedia) {
-          throw error;
+      tried++;
+      anyLaneAttempted = true;
+      const laneStart = Date.now();
+      let laneEmpty = null;
+      let laneResult = null;
+      let laneIncompatible = null;
+      // 每个 lane 最多试 1 个 signer，失败快速切换下一个 lane，不要死磕
+      const signerList = quick === true ? signerOrder(key).slice(0, 1) : signerOrder(key).slice(0, 1);
+      for (const signer of signerList) {
+        const signerStart = Date.now();
+        let result;
+        try {
+          result = appRequest("POST", paths.videoModel, extra, payload, { helper, playbackLane: laneSpec, signer, profile: prof });
+        } catch (error) {
+          const signerMs = Date.now() - signerStart;
+          host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} error=${message(error)} ms=${signerMs}`);
+          if (error.emptyBody) {
+            laneEmpty = error;
+          } else {
+            failures.push(error);
+          }
+          break;
         }
-        laneIncompatible = error;
+        const signerMs = Date.now() - signerStart;
+        laneMarkWarm(key);
+        signerMark(key, signer);
+        profileMark(prof.name);
+        host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} ok ms=${signerMs}`);
+        // 只有返回的数据包含所请求的分集才算该车道可用；数据不匹配时快速切下一个 lane
+        const probe = nested(result, "data");
+        const probeRoot = isRecord(probe["1004"]) ? probe["1004"] : probe;
+        if (!isEmptyRecord(nested(probeRoot, videoId))) {
+          laneResult = result;
+        } else {
+          host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} no-matching-data ms=${signerMs}`);
+        }
+        break;
+      }
+      const laneMs = Date.now() - laneStart;
+      host.log && host.log(`fetchPlayerMedia lane=${key} done ms=${laneMs} result=${laneResult !== null} incompatible=${laneIncompatible !== null} empty=${laneEmpty !== null}`);
+      if (laneResult !== null) {
+        const entries = nested(laneResult, "data");
+        const root = isRecord(entries["1004"]) ? entries["1004"] : entries;
+        const data = nested(root, videoId);
+        try {
+          const media = mediaFromModel(appVideoModel(data));
+          prefetchMedia(root, ids, videoId);
+          return media;
+        } catch (error) {
+          if (!error.noCompatibleMedia) {
+            throw error;
+          }
+          laneIncompatible = error;
+        }
+      }
+      if (laneIncompatible !== null) {
+        failures.push(laneIncompatible);
+        incompatible++;
+        continue;
+      }
+      if (laneEmpty !== null) {
+        laneMarkCold(key);
+        blocked = laneEmpty;
       }
     }
-    if (laneIncompatible !== null) {
-      failures.push(laneIncompatible);
-      incompatible++;
-      continue;
+    // 所有车道都只给不兼容编码时，换请求体也不会变，直接跳出
+    if (tried > 0 && incompatible === tried) {
+      break;
     }
-    if (laneEmpty !== null) {
-      laneMarkCold(key);
-      blocked = laneEmpty;
-    }
-  }
-  // 所有车道都只给不兼容编码时，换请求体也不会变，直接跳出
-  if (tried > 0 && incompatible === tried) {
-    break;
-  }
   }
   if (blocked !== null) {
     throw blocked;
@@ -2790,9 +2806,13 @@ function fetchPlayerMedia(videoId, helper, platform, batch, profile, quick) {
   if (missing !== null) {
     throw missing;
   }
-  if (failures.length === 0) {
+  if (!anyLaneAttempted) {
     // 全是冷却中的车道：交给上层换版本档位/设备，别当成致命错误
     throw failure("红果 App 播放车道都在冷却中", { emptyBody: true });
+  }
+  if (failures.length === 0) {
+    // 有 lane 尝试过但都没有返回匹配数据
+    throw failure("红果 App 未返回所请求的分集播放信息", { emptyBody: true });
   }
   throw failures[0];
 }
