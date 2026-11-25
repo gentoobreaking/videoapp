@@ -266,23 +266,26 @@ func main() {
 
 		for i, ch := range chapters {
 			videoID := extractVideoID(ch)
-			
+
 			task := core.Task{
 				DramaID: drama.ID,
 				Chapter: ch,
 				Index:   i + 1,
 			}
 
+			fmt.Printf("%-6d %-22s 正在解析播放地址...\n", i+1, videoID)
+			start := time.Now()
 			media, err := provider.ResolveMedia(ctx, task)
+			elapsed := time.Since(start)
 			if err != nil {
 				fail++
-				fmt.Printf("%-6d %-22s [獲取失敗: %v]\n", i+1, videoID, err)
+				fmt.Printf("%-6d %-22s [獲取失敗: %v] (耗時 %v)\n", i+1, videoID, err, elapsed)
 				break
 			}
 
 			success++
 			fmt.Fprintln(f, media.URL)
-			fmt.Printf("%-6d %-22s %s\n", i+1, videoID, media.URL)
+			fmt.Printf("%-6d %-22s [成功: %v] (耗時 %v)\n", i+1, videoID, media.URL, elapsed)
 		}
 
 		fmt.Println(strings.Repeat("-", 120))

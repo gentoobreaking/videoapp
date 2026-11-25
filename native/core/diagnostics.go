@@ -103,4 +103,6 @@ func (downloader *Downloader) recordDiagnostic(event diagnosticEvent) {
 			fmt.Fprintf(os.Stderr, "诊断日志保存失败：%v\n", PublicError(err))
 		})
 	}
+	// 同時將模組日誌輸出到標準錯誤，方便 CLI 工具（如 hongguo-list）直接觀看解析過程
+	fmt.Fprintf(os.Stderr, "[Module Log] %s\n", event.Message)
 }
