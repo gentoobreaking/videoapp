@@ -2757,7 +2757,6 @@ function fetchPlayerMedia(videoId, helper, platform, batch, profile, quick) {
         laneMarkWarm(key);
         signerMark(key, signer);
         profileMark(prof.name);
-        host.log && host.log(`fetchPlayerMedia lane=${key} signer=${signer} ok ms=${signerMs}`);
         // 只有返回的数据包含所请求的分集才算该车道可用；数据不匹配时快速切下一个 lane
         const probe = nested(result, "data");
         const probeRoot = isRecord(probe["1004"]) ? probe["1004"] : probe;

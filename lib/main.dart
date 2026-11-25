@@ -158,7 +158,7 @@ class _AppBootstrapState extends State<AppBootstrap>
   }
 
   void _startMemoryMonitoring() {
-    const thresholdMB = 300;
+    const thresholdMB = 512;
     Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
       final mb = _currentRssMB();
